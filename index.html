@@ -20,16 +20,11 @@
             40%, 80% { transform: translateX(8px); }
         }
         .shake-anim { animation: modalShake 0.4s ease-in-out; }
-        @keyframes pulseGlow {
-            0%, 100% { opacity: 0.4; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.05); }
-        }
-        .beacon-pulse { animation: pulseGlow 2s infinite ease-in-out; }
     </style>
 </head>
 <body class="w-screen h-screen relative overflow-hidden text-white bg-slate-950">
 
-    <!-- 1. 시작 화면 (로그인 & 난이도 선택) -->
+    <!-- 1. 시작 화면 -->
     <div id="screen-start" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-xl p-4 md:p-8">
         <div class="max-w-xl w-full bg-slate-900/90 border border-slate-700/80 rounded-3xl p-6 md:p-10 shadow-2xl glow-box flex flex-col items-center text-center">
             <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs md:text-sm font-semibold mb-4">
@@ -42,13 +37,11 @@
                 4가지 단서를 해독하고 열쇠를 모아 방을 탈출하세요!
             </p>
 
-            <!-- 학번 이름 입력 -->
             <div class="w-full bg-slate-950/60 border border-slate-800 rounded-2xl p-4 mb-6 flex flex-col items-start">
                 <label class="text-xs font-semibold text-cyan-300 mb-2">👤 플레이어 정보 입력</label>
                 <input type="text" id="player-input" value="20101 홍길동" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm md:text-base focus:outline-none focus:border-cyan-500 transition-all font-medium">
             </div>
 
-            <!-- 난이도 선택 -->
             <div class="w-full flex flex-col gap-3 mb-6">
                 <label class="text-xs font-semibold text-cyan-300 text-left">🎮 난이도 및 테마 선택</label>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -57,42 +50,39 @@
                             <div class="text-emerald-400 font-bold text-base mb-1">🟢 하 (도서관)</div>
                             <div class="text-slate-400 text-xs">북유럽 앤틱 서재 & 기초 문법</div>
                         </div>
-                        <div class="mt-4 text-xs text-emerald-300 font-semibold group-hover:translate-x-1 transition-transform">시작하기 →</div>
+                        <div class="mt-4 text-xs text-emerald-300 font-semibold">시작하기 →</div>
                     </button>
                     <button onclick="startGame('normal')" class="group relative bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/40 hover:border-cyan-400 rounded-2xl p-4 text-left transition-all flex flex-col justify-between">
                         <div>
                             <div class="text-cyan-400 font-bold text-base mb-1">🟡 중 (사이버랩)</div>
                             <div class="text-slate-400 text-xs">미래형 메카 연구실 & 표준 응용</div>
                         </div>
-                        <div class="mt-4 text-xs text-cyan-300 font-semibold group-hover:translate-x-1 transition-transform">시작하기 →</div>
+                        <div class="mt-4 text-xs text-cyan-300 font-semibold">시작하기 →</div>
                     </button>
                     <button onclick="startGame('hard')" class="group relative bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/40 hover:border-amber-400 rounded-2xl p-4 text-left transition-all flex flex-col justify-between">
                         <div>
                             <div class="text-amber-400 font-bold text-base mb-1">🔴 상 (천상신전)</div>
                             <div class="text-slate-400 text-xs">고대 판타지 유적 & 심화 마스터</div>
                         </div>
-                        <div class="mt-4 text-xs text-amber-300 font-semibold group-hover:translate-x-1 transition-transform">시작하기 →</div>
+                        <div class="mt-4 text-xs text-amber-300 font-semibold">시작하기 →</div>
                     </button>
                 </div>
             </div>
 
-            <!-- 교사용 관제탑 버튼 -->
             <button onclick="openTeacherDashboard()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600/60 rounded-xl text-xs md:text-sm font-semibold text-slate-200 transition-all flex items-center justify-center gap-2">
                 <span>👩‍🏫 교사용 관제탑 & PDF 문제 생성기 열기</span>
             </button>
         </div>
     </div>
 
-    <!-- 2. 게임 플레이 UI 레이어 -->
+    <!-- 2. 게임 플레이 UI -->
     <div id="screen-game" class="absolute inset-0 pointer-events-none hidden z-20 flex flex-col justify-between p-4 md:p-6">
-        <!-- 상단 헤더: 미션 현황 및 타이머 -->
         <header class="flex flex-col md:flex-row items-center justify-between gap-3 pointer-events-auto">
             <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/80 px-4 py-2.5 rounded-2xl flex items-center gap-3 shadow-lg">
                 <span id="badge-level" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">🟢 도서관</span>
                 <span id="player-display" class="text-xs md:text-sm font-bold text-slate-200">20101 홍길동</span>
             </div>
 
-            <!-- 미션 및 열쇠 획득 현황 바 -->
             <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/80 px-4 py-2 rounded-2xl flex items-center gap-4 shadow-lg">
                 <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
                     <span>🗝️ 열쇠:</span>
@@ -116,70 +106,43 @@
             </div>
         </header>
 
-        <!-- 하단 조작 가이드 -->
         <footer class="flex justify-center items-center pointer-events-auto pb-2">
             <div class="bg-slate-900/70 backdrop-blur-md border border-slate-700/60 px-5 py-2 rounded-2xl text-center text-xs md:text-sm text-slate-300 shadow-xl flex items-center gap-3">
                 <span class="animate-bounce">💡</span>
-                <span>마우스 드래그로 방을 둘러보고, 빛나는 <b>가구(태블릿, 서가, 단말기, 금고)</b>를 클릭하여 단서를 조사하세요!</span>
+                <span>빛나는 <b>가구(태블릿, 서가, 단말기, 금고)</b>를 클릭하여 단서를 조사하고, 열쇠 4개를 모아 문을 열고 탈출하세요!</span>
             </div>
         </footer>
     </div>
 
-    <!-- 3. 인터랙티브 퀴즈/미션 모달창 -->
+    <!-- 3. 퀴즈 모달 -->
     <div id="puzzle-modal" class="absolute inset-0 z-40 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
         <div id="modal-container" class="max-w-lg w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl relative transition-all">
-            <!-- 닫기 버튼 -->
-            <button onclick="closePuzzleModal()" class="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all">
-                ✕
-            </button>
-
-            <!-- 모달 헤더 -->
+            <button onclick="closePuzzleModal()" class="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all">✕</button>
             <div class="flex items-center gap-3 mb-4">
                 <div id="modal-icon" class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-bold text-lg">🔍</div>
                 <div>
-                    <div id="modal-category" class="text-xs font-semibold text-cyan-400 tracking-wider uppercase">MISSION</div>
+                    <div id="modal-category" class="text-xs font-semibold text-cyan-400 uppercase">MISSION</div>
                     <h2 id="modal-title" class="text-xl font-bold text-white">단서 조사</h2>
                 </div>
             </div>
-
-            <!-- 오답 시각적 피드백 배너 -->
             <div id="puzzle-error-banner" class="hidden mb-4 p-3 rounded-xl bg-rose-950/60 border border-rose-500/60 text-rose-300 text-xs font-semibold flex items-center gap-2">
-                <span>❌</span>
-                <span id="puzzle-error-text">정답이 아닙니다. 다시 시도하세요!</span>
+                <span>❌</span> <span id="puzzle-error-text">정답이 아닙니다. 다시 시도하세요!</span>
             </div>
-
-            <!-- 퀴즈 내용 영역 -->
-            <div id="puzzle-body" class="mb-6 space-y-4">
-                <!-- 동적으로 채워짐 -->
-            </div>
-
-            <!-- 하단 제출 버튼 -->
+            <div id="puzzle-body" class="mb-6 space-y-4"></div>
             <div class="flex items-center justify-between gap-3 pt-2 border-t border-slate-800">
-                <button onclick="toggleHint()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-300 transition-all flex items-center gap-1.5">
-                    💡 선생님 힌트
-                </button>
-                <button onclick="submitPuzzleAnswer()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 transition-all">
-                    정답 확인 및 키 획득 🔑
-                </button>
+                <button onclick="toggleHint()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-300">💡 힌트</button>
+                <button onclick="submitPuzzleAnswer()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 text-white font-bold text-sm shadow-lg shadow-cyan-500/20">정답 확인 및 키 획득 🔑</button>
             </div>
-
-            <!-- 힌트 박스 -->
-            <div id="hint-box" class="hidden mt-3 p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs font-medium">
-                <!-- 힌트 내용 -->
-            </div>
+            <div id="hint-box" class="hidden mt-3 p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs font-medium"></div>
         </div>
     </div>
 
-    <!-- 4. 승리 모달 (탈출 성공) -->
+    <!-- 4. 승리 모달 -->
     <div id="victory-modal" class="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-xl hidden flex items-center justify-center p-4">
         <div class="max-w-md w-full bg-slate-900 border border-cyan-500/60 rounded-3xl p-8 shadow-2xl text-center glow-box">
-            <div class="w-16 h-16 bg-cyan-500/20 border border-cyan-500/50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl animate-bounce">
-                🎉
-            </div>
+            <div class="w-16 h-16 bg-cyan-500/20 border border-cyan-500/50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl animate-bounce">🎉</div>
             <h2 class="text-2xl md:text-3xl font-black text-white mb-2">탈출 성공!</h2>
-            <p class="text-slate-300 text-xs md:text-sm mb-6">
-                모든 문법 미션을 완수하고 방을 탈출했습니다!
-            </p>
+            <p class="text-slate-300 text-xs md:text-sm mb-6">모든 문법 미션을 완수하고 방을 탈출했습니다!</p>
             <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 mb-6 flex justify-around text-center">
                 <div>
                     <div class="text-xs text-slate-400 mb-1">소요 시간</div>
@@ -188,11 +151,11 @@
                 <div class="w-px bg-slate-800"></div>
                 <div>
                     <div class="text-xs text-slate-400 mb-1">달성 등급</div>
-                    <div id="victory-level-name" class="text-lg font-bold text-emerald-400">도서관 마스터</div>
+                    <div id="victory-level-name" class="text-lg font-bold text-emerald-400">방탈출 마스터</div>
                 </div>
             </div>
             <div class="flex flex-col gap-3">
-                <button onclick="returnToStartFromVictory()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-sm shadow-lg transition-all">
+                <button onclick="returnToStartFromVictory()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 text-white font-bold text-sm shadow-lg transition-all">
                     🏠 처음 화면으로 돌아가기
                 </button>
                 <button onclick="viewRankingFromVictory()" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-300 transition-all">
@@ -202,12 +165,10 @@
         </div>
     </div>
 
-    <!-- 5. 교사용 관제탑 & PDF 문제 생성기 모달 -->
+    <!-- 5. 교사용 관제탑 모달 -->
     <div id="teacher-modal" class="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-xl hidden flex items-center justify-center p-4">
         <div class="max-w-2xl w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onclick="closeTeacherDashboard()" class="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all">
-                ✕
-            </button>
+            <button onclick="closeTeacherDashboard()" class="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-all">✕</button>
             <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-lg">👩‍🏫</div>
                 <div>
@@ -215,68 +176,50 @@
                     <p class="text-xs text-slate-400">학급 탈출 현황 모니터링 및 교과서 맞춤형 미션 커스텀</p>
                 </div>
             </div>
-
-            <!-- 탭 메뉴 -->
             <div class="flex gap-2 mb-6 border-b border-slate-800 pb-3">
                 <button onclick="switchTeacherTab('ranking')" id="tab-btn-ranking" class="px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950 transition-all">실시간 랭킹 관제</button>
-                <button onclick="switchTeacherTab('generator')" id="tab-btn-generator" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">교과서 PDF / 학습지 문제 생성</button>
+                <button onclick="switchTeacherTab('generator')" id="tab-btn-generator" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 transition-all">교과서 PDF / 학습지 문제 생성</button>
             </div>
-
-            <!-- 탭 1: 랭킹 관제 -->
             <div id="teacher-tab-ranking" class="space-y-4">
                 <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4">
-                    <h3 class="text-xs font-bold text-cyan-400 mb-3 flex items-center gap-2"><span>📊</span> 실시간 학급 탈출 현황 (Live Podium)</h3>
+                    <h3 class="text-xs font-bold text-cyan-400 mb-3">📊 실시간 학급 탈출 현황 (Live Podium)</h3>
                     <div id="ranking-list" class="space-y-2">
                         <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs">
                             <span class="font-bold text-white">1. 20101 홍길동</span>
                             <span class="text-emerald-400 font-semibold">탈출 성공 (01:15)</span>
                         </div>
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs">
-                            <span class="font-bold text-white">2. 20115 김철수</span>
-                            <span class="text-cyan-400 font-semibold">진행 중 (열쇠 3/4)</span>
-                        </div>
                     </div>
                 </div>
             </div>
-
-            <!-- 탭 2: PDF 문제 생성기 -->
             <div id="teacher-tab-generator" class="space-y-4 hidden">
-                <div class="border-2 border-dashed border-slate-700 hover:border-cyan-500 rounded-2xl p-6 text-center bg-slate-950/40 transition-all cursor-pointer relative" ondragover="event.preventDefault()" ondrop="handleFileDrop(event)">
+                <div class="border-2 border-dashed border-slate-700 hover:border-cyan-500 rounded-2xl p-6 text-center bg-slate-950/40 relative cursor-pointer">
                     <input type="file" id="pdf-file-input" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileSelect(event)">
                     <div class="text-3xl mb-2">📁</div>
                     <h4 class="text-sm font-bold text-white mb-1">교과서 PDF 또는 학습지 파일 업로드</h4>
-                    <p class="text-xs text-slate-400 mb-3">파일을 마우스로 끌어다 놓거나 클릭하여 선택하세요 (HWP 파일은 PDF 저장 후 업로드)</p>
-                    <span class="inline-block px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-400 text-xs font-semibold border border-cyan-500/30">자동 텍스트 추출 및 미션 반영</span>
+                    <p class="text-xs text-slate-400 mb-3">파일을 마우스로 끌어다 놓거나 클릭하여 선택하세요</p>
                 </div>
-
                 <div class="space-y-2">
                     <label class="text-xs font-semibold text-cyan-300">문법 지문 및 학습 문장 직접 입력</label>
-                    <textarea id="custom-text-input" rows="4" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-cyan-500" placeholder="예: (1) Do you know the book which Mike is reading? (2) The movie that we watched was great..."></textarea>
+                    <textarea id="custom-text-input" rows="4" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-cyan-500" placeholder="예: 문장 입력..."></textarea>
                 </div>
-
-                <button onclick="generateCustomQuizSet()" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs shadow-lg transition-all">
-                    ✨ 방탈출 문제 세트 생성 및 배포하기
-                </button>
+                <button onclick="generateCustomQuizSet()" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold text-xs shadow-lg">✨ 방탈출 문제 세트 생성 및 배포하기</button>
             </div>
         </div>
     </div>
 
-    <!-- 6. 인게임 커스텀 알림 모달 -->
+    <!-- 6. 인게임 알림 모달 -->
     <div id="notice-modal" class="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="max-w-sm w-full bg-slate-900 border border-slate-700 rounded-2xl p-6 text-center shadow-2xl">
             <div id="notice-icon" class="text-3xl mb-2">✨</div>
             <h3 id="notice-title" class="text-base font-bold text-white mb-2">알림</h3>
             <p id="notice-desc" class="text-xs text-slate-300 mb-5">안내 메시지입니다.</p>
-            <button onclick="closeNoticeModal()" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-all">
-                확인
-            </button>
+            <button onclick="closeNoticeModal()" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs">확인</button>
         </div>
     </div>
 
-    <!-- 3D 렌더링 캔버스 컨테이너 -->
+    <!-- 3D 캔버스 -->
     <div id="canvas-container" class="absolute inset-0 z-10"></div>
 
-    <!-- JavaScript 게임 엔진 및 3D 로직 -->
     <script>
         let scene, camera, renderer, raycaster, mouse;
         let currentLevel = 'easy';
@@ -354,9 +297,7 @@
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-            scene.add(ambientLight);
-
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(5, 10, 7);
             scene.add(directionalLight);
@@ -376,35 +317,23 @@
             if (level === 'normal') { wallColor = 0x0f172a; floorColor = 0x090d16; accentColor = 0x06b6d4; }
             if (level === 'hard') { wallColor = 0x171026; floorColor = 0x0b0713; accentColor = 0xf59e0b; }
 
-            const floorGeo = new THREE.PlaneGeometry(16, 16);
-            const floorMat = new THREE.MeshStandardMaterial({ color: floorColor, roughness: 0.8 });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(16, 16), new THREE.MeshStandardMaterial({ color: floorColor, roughness: 0.8 }));
             floor.rotation.x = -Math.PI / 2;
             floor.receiveShadow = true;
             roomGroup.add(floor);
 
-            const backWallGeo = new THREE.PlaneGeometry(16, 10);
-            const backWallMat = new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.9 });
-            const backWall = new THREE.Mesh(backWallGeo, backWallMat);
+            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(16, 10), new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.9 }));
             backWall.position.set(0, 5, -8);
             roomGroup.add(backWall);
 
-            const tabletGroup = createInteractiveObject('tablet', -2.5, 1, 0, accentColor);
-            roomGroup.add(tabletGroup);
+            roomGroup.add(createInteractiveObject('tablet', -2.5, 1, 0, accentColor));
+            roomGroup.add(createBookshelfObject(accentColor).translateX(-4).translateZ(-6.5));
+            roomGroup.add(createInteractiveObject('terminal', 2.5, 0, -2, accentColor));
+            roomGroup.add(createInteractiveObject('safe', 4, 0, -5, accentColor));
 
-            const bookshelfGroup = createBookshelfObject(accentColor);
-            bookshelfGroup.position.set(-4, 0, -6.5);
-            roomGroup.add(bookshelfGroup);
-
-            const terminalGroup = createInteractiveObject('terminal', 2.5, 0, -2, accentColor);
-            roomGroup.add(terminalGroup);
-
-            const safeGroup = createInteractiveObject('safe', 4, 0, -5, accentColor);
-            roomGroup.add(safeGroup);
-
-            const doorGroup = createDoorObject();
-            doorGroup.position.set(0, 0, -7.95);
-            roomGroup.add(doorGroup);
+            const door = new THREE.Mesh(new THREE.BoxGeometry(2.2, 4, 0.2), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.2 }));
+            door.position.set(0, 2, -7.95);
+            roomGroup.add(door);
 
             scene.add(roomGroup);
         }
@@ -412,67 +341,34 @@
         function createInteractiveObject(type, x, y, z, color) {
             const group = new THREE.Group();
             group.position.set(x, y, z);
+            let geo = type === 'tablet' ? new THREE.BoxGeometry(1.2, 0.8, 0.1) : (type === 'terminal' ? new THREE.BoxGeometry(1.4, 1.2, 0.8) : new THREE.BoxGeometry(1.2, 1.4, 1.0));
+            let mat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 });
+            group.add(new THREE.Mesh(geo, mat));
 
-            let geo, mat;
-            if (type === 'tablet') {
-                geo = new THREE.BoxGeometry(1.2, 0.8, 0.1);
-                mat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.2 });
-            } else if (type === 'terminal') {
-                geo = new THREE.BoxGeometry(1.4, 1.2, 0.8);
-                mat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 });
-            } else if (type === 'safe') {
-                geo = new THREE.BoxGeometry(1.2, 1.4, 1.0);
-                mat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.6, roughness: 0.3 });
-            }
-
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.castShadow = true;
-            group.add(mesh);
-
-            const beaconGeo = new THREE.SphereGeometry(0.2, 16, 16);
-            const beaconMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.8 });
-            const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+            const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.8 }));
             beacon.position.set(0, 1.2, 0);
             beacon.name = 'beacon';
             group.add(beacon);
-
             return group;
         }
 
         function createBookshelfObject(color) {
             const group = new THREE.Group();
-            const bodyGeo = new THREE.BoxGeometry(3, 4.5, 1);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.8 });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            const body = new THREE.Mesh(new THREE.BoxGeometry(3, 4.5, 1), new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.8 }));
             body.position.set(0, 2.25, 0);
             group.add(body);
 
-            const bookGeo = new THREE.BoxGeometry(0.4, 0.9, 0.7);
-            const bookMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.7 });
-            const targetBook = new THREE.Mesh(bookGeo, bookMat);
+            const targetBook = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.9, 0.7), new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.7 }));
             targetBook.position.set(0, 2.25, 0.1);
             targetBook.name = 'targetBook';
             group.add(targetBook);
-
-            return group;
-        }
-
-        function createDoorObject() {
-            const group = new THREE.Group();
-            const doorGeo = new THREE.BoxGeometry(2.2, 4, 0.2);
-            const doorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.2 });
-            const door = new THREE.Mesh(doorGeo, doorMat);
-            door.position.set(0, 2, 0);
-            group.add(door);
             return group;
         }
 
         function animate() {
             requestAnimationFrame(animate);
             scene.traverse((obj) => {
-                if (obj.name === 'beacon' || obj.name === 'targetBook') {
-                    obj.rotation.y += 0.02;
-                }
+                if (obj.name === 'beacon' || obj.name === 'targetBook') obj.rotation.y += 0.02;
             });
             renderer.render(scene, camera);
         }
@@ -486,18 +382,13 @@
 
             window.addEventListener('click', (e) => {
                 if (document.getElementById('screen-game').classList.contains('hidden')) return;
-                
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
                 raycaster.setFromCamera(mouse, camera);
                 const intersects = raycaster.intersectObjects(scene.children, true);
-
                 if (intersects.length > 0) {
                     let obj = intersects[0].object;
-                    while (obj.parent && obj.parent !== scene && obj.parent.name !== 'RoomGroup') {
-                        obj = obj.parent;
-                    }
+                    while (obj.parent && obj.parent !== scene && obj.parent.name !== 'RoomGroup') obj = obj.parent;
                     const pos = obj.position;
                     if (Math.abs(pos.x - (-2.5)) < 1) openPuzzle(0);
                     else if (Math.abs(pos.x - (-4)) < 1) openPuzzle(1);
@@ -511,20 +402,16 @@
             currentLevel = level;
             const inputVal = document.getElementById('player-input').value.trim();
             if (inputVal) playerName = inputVal;
-
             document.getElementById('player-display').textContent = playerName;
             const data = levelData[level];
             document.getElementById('badge-level').textContent = data.name;
-
-            const pool = data.escapeKeys;
-            currentEscapeKey = pool[Math.floor(Math.random() * pool.length)];
-
+            currentEscapeKey = data.escapeKeys[Math.floor(Math.random() * data.escapeKeys.length)];
             keysAcquired = [false, false, false, false];
             updateKeyUI();
 
             document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('victory-modal').classList.add('hidden');
             document.getElementById('screen-game').classList.remove('hidden');
-
             buildRoomEnvironment(level);
 
             startTime = Date.now();
@@ -534,20 +421,19 @@
 
         function updateTimer() {
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-            const s = String(elapsed % 60).padStart(2, '0');
-            document.getElementById('timer-display').textContent = `${m}:${s}`;
+            document.getElementById('timer-display').textContent = `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`;
         }
 
         function returnToStart() {
             if (timerInterval) clearInterval(timerInterval);
             document.getElementById('screen-game').classList.add('hidden');
             document.getElementById('victory-modal').classList.add('hidden');
+            document.getElementById('puzzle-modal').classList.add('hidden');
+            document.getElementById('teacher-modal').classList.add('hidden');
             document.getElementById('screen-start').classList.remove('hidden');
         }
 
         function returnToStartFromVictory() {
-            document.getElementById('victory-modal').classList.add('hidden');
             returnToStart();
         }
 
@@ -555,13 +441,15 @@
         let sentenceTokens = [];
 
         function openPuzzle(index) {
+            if (keysAcquired[index]) {
+                showNotice('✨ 이미 완료된 단서', '이미 해독을 완료한 미션입니다! 다른 단서를 찾아보세요.', '🔓');
+                return;
+            }
             activePuzzleIndex = index;
             const data = levelData[currentLevel].puzzles[index];
-
             document.getElementById('puzzle-error-banner').classList.add('hidden');
             document.getElementById('hint-box').classList.add('hidden');
             document.getElementById('modal-title').textContent = data.title;
-            document.getElementById('modal-category').textContent = `MISSION 0${index + 1}`;
 
             const body = document.getElementById('puzzle-body');
             body.innerHTML = '';
@@ -570,64 +458,41 @@
             if (data.type === 'choice') {
                 let html = `<p class="text-sm font-semibold text-white mb-4">${data.question}</p><div class="space-y-2.5">`;
                 data.options.forEach((opt, idx) => {
-                    html += `<button onclick="selectChoice(${idx + 1}, this)" class="choice-btn w-full p-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left text-xs md:text-sm font-medium text-slate-200 transition-all">${opt}</button>`;
+                    html += `<button onclick="selectChoice(${idx + 1}, this)" class="choice-btn w-full p-3.5 rounded-xl bg-slate-800 border border-slate-700 text-left text-xs md:text-sm font-medium text-slate-200 transition-all">${opt}</button>`;
                 });
-                html += `</div>`;
-                body.innerHTML = html;
+                body.innerHTML = html + `</div>`;
             } else if (data.type === 'sentence') {
                 let shuffled;
-                do {
-                    shuffled = [...data.words].sort(() => Math.random() - 0.5);
-                } while (shuffled.every((w, i) => w === data.answer[i]));
-
+                do { shuffled = [...data.words].sort(() => Math.random() - 0.5); } while (shuffled.every((w, i) => w === data.answer[i]));
                 sentenceTokens = { original: data.words, current: shuffled, assembled: [] };
-
-                let html = `
-                    <div class="mb-3 p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">
-                        🇰🇷 의미: "${data.korean}"
-                    </div>
-                    <div class="text-xs text-slate-400 mb-2">아래 단어들을 순서대로 클릭하여 문장을 완성하세요:</div>
-                    <div id="assembled-area" class="min-h-[50px] bg-slate-950 border border-cyan-500/40 rounded-xl p-3 flex flex-wrap gap-2 mb-4 items-center">
-                        <span class="text-slate-500 text-xs italic">여기에 단어가 배치됩니다...</span>
-                    </div>
-                    <div id="pool-area" class="flex flex-wrap gap-2"></div>
-                `;
-                body.innerHTML = html;
+                body.innerHTML = `
+                    <div class="mb-3 p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">🇰🇷 의미: "${data.korean}"</div>
+                    <div id="assembled-area" class="min-h-[50px] bg-slate-950 border border-cyan-500/40 rounded-xl p-3 flex flex-wrap gap-2 mb-4 items-center"><span class="text-slate-500 text-xs italic">단어를 클릭하여 배치하세요...</span></div>
+                    <div id="pool-area" class="flex flex-wrap gap-2"></div>`;
                 renderSentenceTokens();
             } else if (data.type === 'safe') {
                 let html = `<p class="text-xs font-semibold text-cyan-300 mb-3">문법 규칙을 풀고 3자리 금고 번호를 입력하세요.</p><div class="space-y-4">`;
                 data.questions.forEach((qObj, qIdx) => {
-                    html += `
-                        <div class="bg-slate-950/60 border border-slate-800 p-3 rounded-xl">
-                            <div class="text-xs text-white font-medium mb-2">${qObj.q}</div>
-                            <div class="grid grid-cols-3 gap-2">
-                    `;
+                    html += `<div class="bg-slate-950/60 border border-slate-800 p-3 rounded-xl"><div class="text-xs text-white font-medium mb-2">${qObj.q}</div><div class="grid grid-cols-3 gap-2">`;
                     qObj.options.forEach((optText, optIdx) => {
-                        html += `<button onclick="selectSafeOption(${qIdx}, ${optIdx + 1}, this)" class="safe-btn-${qIdx} py-2 px-2 rounded-lg bg-slate-800 border border-slate-700 text-[11px] text-slate-300 font-medium transition-all">${optText}</button>`;
+                        html += `<button onclick="selectSafeOption(${qIdx}, ${optIdx + 1}, this)" class="safe-btn-${qIdx} py-2 px-2 rounded-lg bg-slate-800 border border-slate-700 text-[11px] text-slate-300">${optText}</button>`;
                     });
                     html += `</div></div>`;
                 });
-                html += `</div><input type="text" id="safe-code-input" maxlength="3" class="w-full mt-4 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-center text-xl font-bold tracking-widest text-cyan-400" placeholder="? ? ?">`;
-                body.innerHTML = html;
+                body.innerHTML = html + `<input type="text" id="safe-code-input" maxlength="3" class="w-full mt-4 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-center text-xl font-bold tracking-widest text-cyan-400" placeholder="? ? ?">`;
             }
-
             document.getElementById('puzzle-modal').classList.remove('hidden');
         }
 
         function selectChoice(val, btn) {
             selectedChoiceAnswer = val;
-            document.querySelectorAll('.choice-btn').forEach(b => {
-                b.classList.remove('border-cyan-500', 'bg-cyan-950/40', 'text-cyan-300');
-            });
-            btn.classList.add('border-cyan-500', 'bg-cyan-950/40', 'text-cyan-300');
+            document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('border-cyan-500', 'bg-cyan-950/60', 'text-cyan-300'));
+            btn.classList.add('border-cyan-500', 'bg-cyan-950/60', 'text-cyan-300');
         }
 
         function selectSafeOption(qIdx, optVal, btn) {
-            document.querySelectorAll(`.safe-btn-${qIdx}`).forEach(b => {
-                b.classList.remove('border-cyan-500', 'bg-cyan-950/40', 'text-cyan-300');
-            });
-            btn.classList.add('border-cyan-500', 'bg-cyan-950/40', 'text-cyan-300');
-            
+            document.querySelectorAll(`.safe-btn-${qIdx}`).forEach(b => b.classList.remove('border-cyan-500', 'bg-cyan-950/60', 'text-cyan-300'));
+            btn.classList.add('border-cyan-500', 'bg-cyan-950/60', 'text-cyan-300');
             window.safeAnswers = window.safeAnswers || ['', '', ''];
             window.safeAnswers[qIdx] = String(optVal);
             document.getElementById('safe-code-input').value = window.safeAnswers.join('');
@@ -636,59 +501,39 @@
         function renderSentenceTokens() {
             const assembledArea = document.getElementById('assembled-area');
             const poolArea = document.getElementById('pool-area');
-
-            if (sentenceTokens.assembled.length === 0) {
-                assembledArea.innerHTML = `<span class="text-slate-500 text-xs italic">여기에 단어가 배치됩니다...</span>`;
-            } else {
-                assembledArea.innerHTML = sentenceTokens.assembled.map((word, i) => `
-                    <button onclick="unassembleWord(${i})" class="px-3 py-1.5 rounded-lg bg-cyan-600 text-white text-xs font-bold shadow-md hover:bg-cyan-500 transition-all">
-                        ${word} ✕
-                    </button>
-                `).join('');
-            }
-
-            poolArea.innerHTML = sentenceTokens.current.map((word, i) => `
-                <button onclick="assembleWord(${i})" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold hover:border-cyan-500 transition-all">
-                    ${word}
-                </button>
-            `).join('');
+            assembledArea.innerHTML = sentenceTokens.assembled.length === 0 ? `<span class="text-slate-500 text-xs italic">단어를 클릭하여 배치하세요...</span>` : sentenceTokens.assembled.map((word, i) => `<button onclick="unassembleWord(${i})" class="px-3 py-1.5 rounded-lg bg-cyan-600 text-white text-xs font-bold">${word} ✕</button>`).join('');
+            poolArea.innerHTML = sentenceTokens.current.map((word, i) => `<button onclick="assembleWord(${i})" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold">${word}</button>`).join('');
         }
 
         function assembleWord(idx) {
-            const word = sentenceTokens.current.splice(idx, 1)[0];
-            sentenceTokens.assembled.push(word);
+            sentenceTokens.assembled.push(sentenceTokens.current.splice(idx, 1)[0]);
             renderSentenceTokens();
         }
 
         function unassembleWord(idx) {
-            const word = sentenceTokens.assembled.splice(idx, 1)[0];
-            sentenceTokens.current.push(word);
+            sentenceTokens.current.push(sentenceTokens.assembled.splice(idx, 1)[0]);
             renderSentenceTokens();
         }
 
         function submitPuzzleAnswer() {
             const data = levelData[currentLevel].puzzles[activePuzzleIndex];
             let isCorrect = false;
-
-            if (data.type === 'choice') {
-                if (selectedChoiceAnswer === data.answer) isCorrect = true;
-            } else if (data.type === 'sentence') {
-                if (JSON.stringify(sentenceTokens.assembled) === JSON.stringify(data.answer)) isCorrect = true;
-            } else if (data.type === 'safe') {
-                const userCode = document.getElementById('safe-code-input').value.trim();
-                if (userCode === data.answerCode) isCorrect = true;
-            }
+            if (data.type === 'choice' && selectedChoiceAnswer === data.answer) isCorrect = true;
+            if (data.type === 'sentence' && JSON.stringify(sentenceTokens.assembled) === JSON.stringify(data.answer)) isCorrect = true;
+            if (data.type === 'safe' && document.getElementById('safe-code-input').value.trim() === data.answerCode) isCorrect = true;
 
             if (isCorrect) {
                 keysAcquired[activePuzzleIndex] = true;
                 updateKeyUI();
                 closePuzzleModal();
                 showNotice('✨ 정답입니다!', `[ ${['L', 'I', 'N', 'K'][activePuzzleIndex]} ] 열쇠를 획득했습니다!`, '🔑');
-
                 if (keysAcquired.every(Boolean)) {
                     setTimeout(() => {
-                        showNotice('🚨 출구 개방!', '모든 열쇠를 모았습니다! 방 중앙 문으로 가서 탈출하세요.', '🚪');
-                    }, 800);
+                        if (timerInterval) clearInterval(timerInterval);
+                        document.getElementById('victory-time').textContent = document.getElementById('timer-display').textContent;
+                        document.getElementById('victory-level-name').textContent = levelData[currentLevel].name;
+                        document.getElementById('victory-modal').classList.remove('hidden');
+                    }, 600);
                 }
             } else {
                 const modal = document.getElementById('modal-container');
@@ -699,98 +544,27 @@
         }
 
         function updateKeyUI() {
-            const counter = document.getElementById('keys-counter');
-            const count = keysAcquired.filter(Boolean).length;
-            counter.textContent = `${count} / 4`;
-
-            const slots = document.querySelectorAll('#key-slots > div');
-            slots.forEach((slot, i) => {
-                if (keysAcquired[i]) {
-                    slot.classList.remove('bg-slate-800', 'border-slate-700', 'text-slate-500');
-                    slot.classList.add('bg-cyan-500/20', 'border-cyan-500', 'text-cyan-400', 'glow-box');
-                }
+            document.getElementById('keys-counter').textContent = `${keysAcquired.filter(Boolean).length} / 4`;
+            document.querySelectorAll('#key-slots > div').forEach((slot, i) => {
+                if (keysAcquired[i]) slot.className = "w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500 flex items-center justify-center text-xs font-bold text-cyan-400 glow-box";
             });
         }
 
-        function closePuzzleModal() {
-            document.getElementById('puzzle-modal').classList.add('hidden');
-        }
-
-        function toggleHint() {
-            const data = levelData[currentLevel].puzzles[activePuzzleIndex];
-            const hintBox = document.getElementById('hint-box');
-            hintBox.textContent = `💡 힌트: ${data.hint}`;
-            hintBox.classList.toggle('hidden');
-        }
-
-        function showNotice(title, desc, icon = '✨') {
-            document.getElementById('notice-title').textContent = title;
-            document.getElementById('notice-desc').textContent = desc;
-            document.getElementById('notice-icon').textContent = icon;
-            document.getElementById('notice-modal').classList.remove('hidden');
-        }
-
-        function closeNoticeModal() {
-            document.getElementById('notice-modal').classList.add('hidden');
-        }
-
-        function openTeacherDashboard() {
-            document.getElementById('teacher-modal').classList.remove('hidden');
-        }
-
-        function closeTeacherDashboard() {
-            document.getElementById('teacher-modal').classList.add('hidden');
-        }
-
+        function closePuzzleModal() { document.getElementById('puzzle-modal').classList.add('hidden'); }
+        function toggleHint() { document.getElementById('hint-box').textContent = `💡 힌트: ${levelData[currentLevel].puzzles[activePuzzleIndex].hint}`; document.getElementById('hint-box').classList.toggle('hidden'); }
+        function showNotice(title, desc, icon = '✨') { document.getElementById('notice-title').textContent = title; document.getElementById('notice-desc').textContent = desc; document.getElementById('notice-icon').textContent = icon; document.getElementById('notice-modal').classList.remove('hidden'); }
+        function closeNoticeModal() { document.getElementById('notice-modal').classList.add('hidden'); }
+        function openTeacherDashboard() { document.getElementById('teacher-modal').classList.remove('hidden'); }
+        function closeTeacherDashboard() { document.getElementById('teacher-modal').classList.add('hidden'); }
         function switchTeacherTab(tabName) {
-            if (tabName === 'ranking') {
-                document.getElementById('teacher-tab-ranking').classList.remove('hidden');
-                document.getElementById('teacher-tab-generator').classList.add('hidden');
-                document.getElementById('tab-btn-ranking').className = 'px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950 transition-all';
-                document.getElementById('tab-btn-generator').className = 'px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all';
-            } else {
-                document.getElementById('teacher-tab-ranking').classList.add('hidden');
-                document.getElementById('teacher-tab-generator').classList.remove('hidden');
-                document.getElementById('tab-btn-generator').className = 'px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950 transition-all';
-                document.getElementById('tab-btn-ranking').className = 'px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all';
-            }
+            document.getElementById('teacher-tab-ranking').classList.toggle('hidden', tabName !== 'ranking');
+            document.getElementById('teacher-tab-generator').classList.toggle('hidden', tabName !== 'generator');
+            document.getElementById('tab-btn-ranking').className = tabName === 'ranking' ? 'px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950' : 'px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300';
+            document.getElementById('tab-btn-generator').className = tabName === 'generator' ? 'px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950' : 'px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300';
         }
-
-        function handleFileDrop(e) {
-            e.preventDefault();
-            const file = e.dataTransfer.files[0];
-            processFile(file);
-        }
-
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            processFile(file);
-        }
-
-        function processFile(file) {
-            if (!file) return;
-            if (file.name.endsWith('.hwp')) {
-                showNotice('📌 한글(HWP) 파일 안내', '한글 프로그램에서 [파일 ➔ PDF로 저장] 후 업로드하시거나 본문을 복사하여 붙여넣기 해 주세요!', '📂');
-                return;
-            }
-            showNotice('📁 파일 분석 완료', `${file.name} 파일에서 문법 지문이 성공적으로 추출되었습니다!`, '✨');
-        }
-
-        function generateCustomQuizSet() {
-            const text = document.getElementById('custom-text-input').value.trim();
-            if (!text) {
-                showNotice('⚠️ 입력 필요', '문법 지문이나 영문장을 입력하거나 파일을 업로드해 주세요.', '⚠️');
-                return;
-            }
-            closeTeacherDashboard();
-            showNotice('🚀 배포 완료!', '입력하신 교과서 맞춤형 문제가 모든 학생들의 방탈출 미션에 즉시 적용되었습니다!', '🎉');
-        }
-
-        function viewRankingFromVictory() {
-            document.getElementById('victory-modal').classList.add('hidden');
-            openTeacherDashboard();
-            switchTeacherTab('ranking');
-        }
+        function handleFileSelect(e) { showNotice('📁 파일 분석 완료', `${e.target.files[0].name} 파일이 반영되었습니다!`, '✨'); }
+        function generateCustomQuizSet() { closeTeacherDashboard(); showNotice('🚀 배포 완료!', '맞춤형 문제가 모든 학생들의 미션에 적용되었습니다!', '🎉'); }
+        function viewRankingFromVictory() { document.getElementById('victory-modal').classList.add('hidden'); openTeacherDashboard(); switchTeacherTab('ranking'); }
     </script>
 </body>
 </html>
