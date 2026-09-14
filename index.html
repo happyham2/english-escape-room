@@ -371,7 +371,7 @@
             <button onclick="broadcastStart()" class="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-all">
               <i class="fa-solid fa-play mr-1"></i> 전원 일제 시작 신호
             </button>
-            <button onclick="resetClassScores()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 text-xs font-semibold">
+            <button data-ranking-reset onclick="resetClassScores()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 text-xs font-semibold">
               기록 초기화
             </button>
           </div>
@@ -2211,6 +2211,7 @@
     let db = null;
     let rankingChannel = null;
     let classRecords = [];
+    let rankingLoadVersion = 0;
 
     function setRankingStatus(message, ok = false) {
       const el = document.getElementById('ranking-connection-status');
@@ -2222,16 +2223,19 @@
     }
 
     async function loadSharedRanking() {
-      if (!db) return;
+      if (!db) return false;
+      const version = ++rankingLoadVersion;
+      try {
       const { data, error } = await db
         .from('escape_room_rankings')
         .select('*')
         .order('elapsed_seconds', { ascending: true })
         .order('created_at', { ascending: true });
+      if (version !== rankingLoadVersion) return false;
       if (error) {
         console.error('Supabase ranking load error:', error);
         setRankingStatus('❌ 실시간 랭킹을 불러오지 못했습니다. Supabase 설정을 확인하세요.');
-        return;
+        return false;
       }
       classRecords = (data || []).map((r, i) => ({
         rank: i + 1,
@@ -2249,6 +2253,11 @@
       }));
       setRankingStatus(`🟢 <b>실시간 학급 랭킹 연결됨</b> — ${classRecords.length}명의 완료 기록을 표시하고 있습니다.`, true);
       renderRankingTable();
+      return true;
+      } catch (error) {
+        if (version === rankingLoadVersion) setRankingStatus('❌ 실시간 랭킹을 불러오지 못했습니다. 네트워크 연결을 확인하세요.');
+        return false;
+      }
     }
 
     async function initSharedRanking() {
@@ -2345,33 +2354,6 @@
 
     function broadcastStart() {
       showNotice('📢 교사용 명령: 전원 일제 시작 신호가 학급 전체에 브로드캐스트되었습니다!', 'info');
-    }
-
-    async function resetClassScores() {
-      if (!db) await initSharedRanking();
-      if (!db) {
-        showNotice('❌ Supabase 연결을 확인해주세요.', 'error');
-        return;
-      }
-
-      const pin = prompt('교사용 PIN을 입력하세요.\n전체 학급 랭킹 기록이 삭제됩니다.');
-      if (!pin) return;
-
-      const confirmed = confirm('정말 전체 랭킹 기록을 초기화할까요?\n이 작업은 되돌릴 수 없습니다.');
-      if (!confirmed) return;
-
-      const { error } = await db.rpc('teacher_clear_rankings', { p_pin: pin.trim() });
-      if (error) {
-        console.error('랭킹 초기화 실패:', error);
-        alert('❌ 기록 초기화 실패: ' + (error.message || '교사용 PIN 또는 Supabase 설정을 확인하세요.'));
-        return;
-      }
-
-      classRecords = [];
-      renderRankingTable();
-      setRankingStatus('🧹 <b>전체 랭킹 기록을 초기화했습니다.</b>', true);
-      await loadSharedRanking();
-      alert('✅ 전체 학급 랭킹 기록을 초기화했습니다.');
     }
 
     function exportCSV() {
@@ -2784,10 +2766,63 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      init3D();
+      try { init3D(); } catch (error) { console.error('3D 초기화 실패:', error); }
       await initSharedRanking();
       await initLearningArchive();
     });
+  </script>
+  <script>
+// Both HTML entry points use the same server-verified reset flow.
+let rankingResetInProgress = false;
+
+async function resetClassScores() {
+  if (rankingResetInProgress) return;
+  const pin = prompt('교사용 PIN을 입력하세요.\n전체 학급 랭킹 기록이 삭제됩니다.');
+  if (pin === null || !pin.trim()) return;
+  if (!confirm('정말 전체 학급 랭킹을 삭제할까요?\n모든 학생의 완료 기록이 삭제되며 되돌릴 수 없습니다.\n저장된 문제 세트는 유지됩니다.')) return;
+
+  rankingResetInProgress = true;
+  const buttons = document.querySelectorAll('[data-ranking-reset]');
+  buttons.forEach(button => { button.disabled = true; });
+  let deleted = false;
+  try {
+    if (!db) await initSharedRanking();
+    if (!db) throw new Error('Supabase 연결을 확인해주세요.');
+    setRankingStatus('⏳ 교사용 PIN 확인 및 전체 랭킹 삭제 중...');
+    const { data, error } = await db.rpc('teacher_clear_rankings', { p_pin: pin.trim() });
+    if (error) throw error;
+    // A void/false response from an old RPC is not proof of deletion.
+    if (!data || data.success !== true || !Number.isSafeInteger(data.deleted_count) || data.deleted_count < 0) {
+      throw new Error('서버의 삭제 결과를 확인할 수 없습니다. supabase/teacher-clear-rankings.sql을 적용한 뒤 랭킹을 새로고침하세요.');
+    }
+    deleted = true;
+    // Ignore SELECT responses started before this deletion committed.
+    rankingLoadVersion++;
+    classRecords = [];
+    renderRankingTable();
+    const refreshed = await loadSharedRanking();
+    if (!refreshed) throw new Error('최신 랭킹을 불러오지 못했습니다.');
+    const message = `✅ 전체 랭킹 ${data.deleted_count}건을 삭제했습니다.`;
+    setRankingStatus(`${message} 현재 완료 기록: ${classRecords.length}건 (삭제 후 새로 제출된 기록은 표시됩니다).`, true);
+    alert(message);
+  } catch (error) {
+    let message;
+    if (deleted) {
+      message = '랭킹 삭제는 완료했지만 목록을 새로고침하지 못했습니다. 다시 삭제하지 말고 페이지를 새로고침하세요.';
+    } else if (error.code === 'PGRST202' || error.code === '42883') {
+      message = '서버 초기화 함수가 설치되지 않았습니다. Supabase SQL Editor에서 supabase/teacher-clear-rankings.sql을 적용해주세요.';
+    } else if (error.code === '28000') {
+      message = '교사용 PIN이 올바르지 않습니다. 기록은 삭제되지 않았습니다.';
+    } else {
+      message = '초기화 결과를 확인하지 못했습니다: ' + (error.message || '네트워크 또는 Supabase 설정을 확인하세요.');
+    }
+    setRankingStatus('❌ ' + escapeHtml(message));
+    alert('❌ ' + message);
+  } finally {
+    rankingResetInProgress = false;
+    buttons.forEach(button => { button.disabled = false; });
+  }
+}
   </script>
 </body>
 </html>
