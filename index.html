@@ -183,6 +183,20 @@
         </div>
       </div>
 
+      <!-- Learning Set Selection -->
+      <div class="mb-5">
+        <label class="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+          <i class="fa-solid fa-box-archive text-violet-400"></i> 오늘의 학습 세트
+        </label>
+        <select id="student-learning-set-select" onchange="selectLearningSet(this.value)"
+          class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-violet-400 transition-colors">
+          <option value="">기본 방탈출 문제 세트</option>
+        </select>
+        <div id="student-learning-set-info" class="mt-2 text-[11px] text-slate-400">
+          선생님이 공개한 단원별 세트가 여기에 표시됩니다.
+        </div>
+      </div>
+
       <!-- Difficulty Level Selection -->
       <div class="mb-6">
         <label class="block text-xs font-semibold text-slate-300 mb-2">
@@ -345,6 +359,9 @@
         <button id="tab-btn-generator" onclick="switchTeacherTab('generator')" class="px-4 py-2 rounded-xl bg-slate-800/70 text-slate-400 text-xs font-bold hover:text-slate-200">
           📁 교과서 PDF / 학습지 문제 생성기
         </button>
+        <button id="tab-btn-archive" onclick="switchTeacherTab('archive')" class="px-4 py-2 rounded-xl bg-slate-800/70 text-slate-400 text-xs font-bold hover:text-slate-200">
+          🗂️ 단원별 문제 아카이브
+        </button>
       </div>
 
       <!-- TAB 1: LIVE RANKING -->
@@ -390,6 +407,23 @@
 
       <!-- TAB 2: AI QUESTION GENERATOR -->
       <div id="teacher-tab-generator" class="hidden space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1">단원</label>
+            <input id="archive-unit-input" type="text" placeholder="예: 5단원" class="w-full bg-slate-950/70 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-violet-400">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1">영역</label>
+            <select id="archive-category-input" class="w-full bg-slate-950/70 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-violet-400">
+              <option>문법</option><option>단어</option><option>독해</option><option>기타</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1">세트 제목</label>
+            <input id="archive-title-input" type="text" placeholder="예: 관계대명사 목적격" class="w-full bg-slate-950/70 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-violet-400">
+          </div>
+        </div>
+        <input id="archive-edit-id" type="hidden" value="">
         <div id="pdf-dropzone" onclick="document.getElementById('pdf-file-input').click()"
           class="border-2 border-dashed border-slate-600 hover:border-cyan-400 rounded-2xl p-6 text-center cursor-pointer bg-slate-900/40 hover:bg-cyan-500/5 transition-all">
           <input type="file" id="pdf-file-input" accept=".pdf,.hwp,.hwpx,.txt" class="hidden" onchange="handleFileUpload(event)">
@@ -398,7 +432,7 @@
             교과서 PDF 또는 학습지 파일 업로드 (드래그 앤 드롭)
           </div>
           <div class="text-[11px] text-slate-400 mt-1">
-            PDF 내 영문장들을 자동으로 추출하여 방탈출 문제 세트를 구성합니다.
+            PDF 내 영문장을 추출하여 4문제 × 5세트, 총 20문제 랜덤 문제팩을 구성합니다.
           </div>
           <div class="text-[10px] text-amber-300/80 mt-1.5">
             * HWP 파일은 한글 프로그램에서 [파일 ➔ PDF로 저장] 후 업로드하시거나 아래 입력창에 문장을 직접 복사해 주세요.
@@ -412,10 +446,34 @@
           <textarea id="custom-sentences-input" rows="5" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl p-3 text-xs text-slate-100 focus:outline-none focus:border-cyan-400 transition-colors custom-scrollbar" placeholder="예:&#10;1) Do you know the book which Mike is reading?&#10;2) The pasta that the chef cooked was delicious.&#10;3) I like the boy who plays the guitar well."></textarea>
         </div>
 
-        <button onclick="generateCustomPuzzles()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-          <span>입력한 문장으로 방탈출 퀴즈 즉시 재생성 및 적용</span>
-        </button>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <button onclick="generateCustomPuzzles()" class="py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles"></i><span>현재 게임에 적용</span>
+          </button>
+          <button onclick="saveLearningSet(false)" class="py-2.5 rounded-xl bg-violet-500/20 hover:bg-violet-500/30 border border-violet-400/40 text-violet-200 font-extrabold text-xs transition-all">
+            💾 아카이브 저장
+          </button>
+          <button onclick="saveLearningSet(true)" class="py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition-all">
+            📢 저장 + 학생 공개
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-500">저장 시 학습 내용으로 4문제 × 5세트(총 20문제)가 자동 생성됩니다. 학생은 게임에 들어갈 때마다 5세트 중 1세트를 무작위로 풉니다. 수정 저장 시 버전 번호가 올라갑니다.</p>
+      </div>
+
+      <!-- TAB 3: LEARNING SET ARCHIVE -->
+      <div id="teacher-tab-archive" class="hidden space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
+          <div>
+            <div class="text-sm font-extrabold text-violet-200">🗂️ 단원별 문제 아카이브</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">5단원 문법 · 6단원 단어처럼 저장하고 학생 공개 여부를 관리합니다.</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="loadTeacherArchive(false)" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700">새로고침</button>
+            <button onclick="newLearningSet()" class="px-3 py-2 rounded-xl bg-violet-500 hover:bg-violet-400 text-white text-xs font-bold">+ 새 세트</button>
+          </div>
+        </div>
+        <div id="teacher-archive-status" class="text-xs text-slate-400">교사용 PIN을 입력하면 저장된 세트를 불러옵니다.</div>
+        <div id="teacher-archive-list" class="space-y-2"></div>
       </div>
 
     </div>
@@ -512,7 +570,11 @@
       keysCollected: [false, false, false, false],
       currentPasscode: 'LINK',
       score: 0,
-      activePuzzleKey: null
+      activePuzzleKey: null,
+      learningSetId: null,
+      learningSetTitle: '기본 문제 세트',
+      learningSetUnit: '',
+      learningSetCategory: ''
     };
 
     const PASSCODE_POOLS = {
@@ -1619,6 +1681,22 @@
         safe: bank.safe[Math.floor(Math.random() * bank.safe.length)]
       };
 
+      // 아카이브 세트가 선택된 경우 저장된 5세트(총 20문제) 중 1세트를 무작위로 실행합니다.
+      const selectedSet = publishedLearningSets.find(x => String(x.id) === String(state.learningSetId));
+      if (selectedSet && selectedSet.content) {
+        let pack = normalizeQuestionPack(selectedSet.question_pack);
+        if (!pack.length) pack = generateQuestionPackFromContent(selectedSet.content, selectedSet);
+        if (pack.length) {
+          const round = pack[Math.floor(Math.random() * pack.length)];
+          sessionPuzzles = {
+            desk: round.desk,
+            shelf: round.shelf,
+            terminal: round.terminal,
+            safe: round.safe
+          };
+        }
+      }
+
       state.keysCollected = [false, false, false, false];
       state.score = 0;
       state.isPlaying = true;
@@ -2163,6 +2241,10 @@
         time: r.elapsed_time,
         elapsedSeconds: r.elapsed_seconds,
         status: r.status || '탈출완료',
+        learningSetId: r.learning_set_id || null,
+        learningSetTitle: r.learning_set_title || '기본 문제 세트',
+        learningSetUnit: r.learning_set_unit || '',
+        learningSetCategory: r.learning_set_category || '',
         createdAt: r.created_at
       }));
       setRankingStatus(`🟢 <b>실시간 학급 랭킹 연결됨</b> — ${classRecords.length}명의 완료 기록을 표시하고 있습니다.`, true);
@@ -2203,17 +2285,16 @@
     }
 
     function switchTeacherTab(tab) {
-      if (tab === 'ranking') {
-        document.getElementById('teacher-tab-ranking').classList.remove('hidden');
-        document.getElementById('teacher-tab-generator').classList.add('hidden');
-        document.getElementById('tab-btn-ranking').className = 'px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold';
-        document.getElementById('tab-btn-generator').className = 'px-4 py-2 rounded-xl bg-slate-800/70 text-slate-400 text-xs font-bold hover:text-slate-200';
-      } else {
-        document.getElementById('teacher-tab-ranking').classList.add('hidden');
-        document.getElementById('teacher-tab-generator').classList.remove('hidden');
-        document.getElementById('tab-btn-ranking').className = 'px-4 py-2 rounded-xl bg-slate-800/70 text-slate-400 text-xs font-bold hover:text-slate-200';
-        document.getElementById('tab-btn-generator').className = 'px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold';
-      }
+      const tabs = ['ranking', 'generator', 'archive'];
+      tabs.forEach(t => {
+        const panel = document.getElementById(`teacher-tab-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (panel) panel.classList.toggle('hidden', t !== tab);
+        if (btn) btn.className = t === tab
+          ? 'px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold'
+          : 'px-4 py-2 rounded-xl bg-slate-800/70 text-slate-400 text-xs font-bold hover:text-slate-200';
+      });
+      if (tab === 'archive') loadTeacherArchive(false);
     }
 
     function renderRankingTable() {
@@ -2226,7 +2307,7 @@
       tbody.innerHTML = classRecords.map((r, idx) => `
         <tr class="hover:bg-slate-800/50 transition-colors">
           <td class="py-2.5 px-3 font-bold ${(idx + 1) === 1 ? 'text-amber-400' : 'text-slate-300'}">${idx + 1}</td>
-          <td class="py-2.5 px-3 font-semibold text-slate-100">${escapeHtml(r.name || '')}</td>
+          <td class="py-2.5 px-3 font-semibold text-slate-100">${escapeHtml(r.name || '')}<div class="text-[9px] font-normal text-violet-300/80 mt-0.5">${escapeHtml([r.learningSetUnit, r.learningSetCategory, r.learningSetTitle].filter(Boolean).join(' · '))}</div></td>
           <td class="py-2.5 px-3 text-cyan-300 uppercase">${escapeHtml(r.tier || '')}</td>
           <td class="py-2.5 px-3 text-emerald-400 font-mono">${escapeHtml(r.keys || '4/4')}</td>
           <td class="py-2.5 px-3 font-mono text-slate-300">${escapeHtml(r.time || '')}</td>
@@ -2248,7 +2329,11 @@
         keys_collected: 4,
         elapsed_seconds: elapsedSeconds,
         elapsed_time: timeStr,
-        status: '탈출완료'
+        status: '탈출완료',
+        learning_set_id: state.learningSetId || null,
+        learning_set_title: state.learningSetTitle || '기본 문제 세트',
+        learning_set_unit: state.learningSetUnit || null,
+        learning_set_category: state.learningSetCategory || null
       });
       if (error) {
         console.error('랭킹 저장 실패:', error);
@@ -2263,7 +2348,30 @@
     }
 
     async function resetClassScores() {
-      alert('학생의 실수로 전체 기록이 삭제되지 않도록 웹에서는 전체 초기화를 막아두었습니다. 필요할 때 Supabase에서 선생님이 직접 초기화할 수 있습니다.');
+      if (!db) await initSharedRanking();
+      if (!db) {
+        showNotice('❌ Supabase 연결을 확인해주세요.', 'error');
+        return;
+      }
+
+      const pin = prompt('교사용 PIN을 입력하세요.\n전체 학급 랭킹 기록이 삭제됩니다.');
+      if (!pin) return;
+
+      const confirmed = confirm('정말 전체 랭킹 기록을 초기화할까요?\n이 작업은 되돌릴 수 없습니다.');
+      if (!confirmed) return;
+
+      const { error } = await db.rpc('teacher_clear_rankings', { p_pin: pin.trim() });
+      if (error) {
+        console.error('랭킹 초기화 실패:', error);
+        alert('❌ 기록 초기화 실패: ' + (error.message || '교사용 PIN 또는 Supabase 설정을 확인하세요.'));
+        return;
+      }
+
+      classRecords = [];
+      renderRankingTable();
+      setRankingStatus('🧹 <b>전체 랭킹 기록을 초기화했습니다.</b>', true);
+      await loadSharedRanking();
+      alert('✅ 전체 학급 랭킹 기록을 초기화했습니다.');
     }
 
     function exportCSV() {
@@ -2278,6 +2386,318 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+
+    // -------------------------------------------------------------------------
+    // 단원별 학습 세트 아카이브 (Supabase)
+    // -------------------------------------------------------------------------
+    let publishedLearningSets = [];
+    let learningSetsChannel = null;
+    let teacherArchiveSets = [];
+    let teacherPin = '';
+
+    function parseLearningLines(content) {
+      return String(content || '')
+        .split(/\n|(?<=[.!?])\s+/)
+        .map(v => v.replace(/^\s*\d+[.)]\s*/, '').trim())
+        .filter(v => v.length > 2 && /[A-Za-z]/.test(v));
+    }
+
+    function normalizeQuestionPack(value) {
+      if (!value) return [];
+      if (Array.isArray(value)) return value.filter(v => v && v.desk && v.shelf && v.terminal && v.safe).slice(0, 5);
+      try {
+        const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+        return Array.isArray(parsed) ? parsed.filter(v => v && v.desk && v.shelf && v.terminal && v.safe).slice(0, 5) : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function cleanWord(token) {
+      return String(token || '').replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, '');
+    }
+
+    function makeSentenceDistractor(sentence, mode = 0) {
+      const words = String(sentence || '').trim().split(/\s+/).filter(Boolean);
+      if (words.length < 3) return sentence + ' not';
+      const copy = [...words];
+      if (mode % 3 === 0) {
+        const i = Math.min(copy.length - 2, Math.max(0, Math.floor(copy.length / 2) - 1));
+        [copy[i], copy[i + 1]] = [copy[i + 1], copy[i]];
+      } else if (mode % 3 === 1) {
+        copy.splice(Math.max(1, Math.floor(copy.length / 2)), 1);
+      } else {
+        const i = Math.max(1, Math.floor(copy.length / 2));
+        copy.splice(i, 0, copy[i - 1]);
+      }
+      return copy.join(' ');
+    }
+
+    function shuffleArray(arr) {
+      const out = [...arr];
+      for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+      }
+      return out;
+    }
+
+    // 입력한 교과서/학습지 내용을 바탕으로 4문제 × 5세트 = 총 20문제를 자동 구성합니다.
+    // 한 번 게임을 시작할 때 5세트 중 1세트가 랜덤으로 선택됩니다.
+    function generateQuestionPackFromContent(content, meta = {}) {
+      let lines = parseLearningLines(content);
+      if (!lines.length) return [];
+      while (lines.length < 5) lines = lines.concat(lines);
+      lines = lines.slice(0, Math.max(5, lines.length));
+
+      const rounds = [];
+      for (let r = 0; r < 5; r++) {
+        const sentence = lines[r % lines.length];
+        const tokens = sentence.match(/[^\s]+/g) || [];
+        const alt1 = makeSentenceDistractor(sentence, r);
+        const alt2 = makeSentenceDistractor(sentence, r + 1);
+
+        const deskOpts = shuffleArray([sentence, alt1]);
+        const desk = {
+          q: `다음 중 <b>${escapeHtml(meta.title || '학습 내용')}</b>에 제시된 올바른 문장을 고르세요.<br><br><span class="text-cyan-200">세트 ${r + 1} / 5</span>`,
+          opts: deskOpts,
+          ans: sentence,
+          hint: `원문을 단어 순서와 빠진 단어까지 비교하세요: ${sentence}`
+        };
+
+        const shelfOpts = shuffleArray([sentence, alt1, alt2]);
+        const shelf = {
+          q: `다음 중 어순과 단어 구성이 원문과 정확히 일치하는 문장은? <span class="text-cyan-200">(랜덤 세트 ${r + 1})</span>`,
+          opts: shelfOpts,
+          ans: shelfOpts.indexOf(sentence),
+          hint: `학습 문장 원문: ${sentence}`
+        };
+
+        const terminal = {
+          ko: `[${meta.unit_name || '학습 세트'} · ${meta.category || '영어'}] ${meta.title || ''} — 단어 칩을 드래그하여 원문 어순을 완성하세요.`,
+          tokens,
+          hint: `원문: ${sentence}`
+        };
+
+        const first = cleanWord(tokens[0]);
+        const last = cleanWord(tokens[tokens.length - 1]);
+        const middle = cleanWord(tokens[Math.floor(tokens.length / 2)] || tokens[0]);
+        const falseFirst = cleanWord((lines[(r + 1) % lines.length].match(/[^\s]+/g) || ['English'])[0]) || 'English';
+        const safeAnswers = [1, 1, 1, first.toLowerCase() === falseFirst.toLowerCase() ? 1 : 2];
+        const safe = {
+          q: `아래 4문항의 정답 번호를 순서대로 입력하세요.<br><br>` +
+             `① 원문의 첫 단어는 <b>${escapeHtml(first)}</b>이다. [1. 맞음 / 2. 틀림]<br>` +
+             `② 원문에는 <b>${escapeHtml(middle)}</b>이(가) 포함되어 있다. [1. 맞음 / 2. 틀림]<br>` +
+             `③ 원문의 마지막 단어는 <b>${escapeHtml(last)}</b>이다. [1. 맞음 / 2. 틀림]<br>` +
+             `④ 원문의 첫 단어는 <b>${escapeHtml(falseFirst)}</b>이다. [1. 맞음 / 2. 틀림]`,
+          ans: safeAnswers.join(''),
+          hint: `원문을 다시 확인하세요: ${sentence}`
+        };
+
+        rounds.push({ round: r + 1, desk, shelf, terminal, safe });
+      }
+      return rounds;
+    }
+
+    async function loadPublishedLearningSets() {
+      if (!db) return;
+      const { data, error } = await db.from('learning_sets')
+        .select('id,unit_name,category,title,content,question_pack,version,is_published,updated_at')
+        .eq('is_published', true)
+        .order('unit_name', { ascending: true })
+        .order('category', { ascending: true })
+        .order('title', { ascending: true });
+      if (error) {
+        console.warn('Learning archive not ready:', error.message);
+        renderStudentLearningSets();
+        return;
+      }
+      publishedLearningSets = data || [];
+      renderStudentLearningSets();
+    }
+
+    function renderStudentLearningSets() {
+      const select = document.getElementById('student-learning-set-select');
+      if (!select) return;
+      const current = state.learningSetId ? String(state.learningSetId) : '';
+      select.innerHTML = '<option value="">기본 방탈출 문제 세트</option>' + publishedLearningSets.map(set =>
+        `<option value="${escapeHtml(set.id)}">${escapeHtml(set.unit_name)} · ${escapeHtml(set.category)} · ${escapeHtml(set.title)}</option>`
+      ).join('');
+      if ([...select.options].some(o => o.value === current)) select.value = current;
+      else if (current) selectLearningSet('');
+    }
+
+    function selectLearningSet(id) {
+      if (!id) {
+        state.learningSetId = null;
+        state.learningSetTitle = '기본 문제 세트';
+        state.learningSetUnit = '';
+        state.learningSetCategory = '';
+        const info = document.getElementById('student-learning-set-info');
+        if (info) info.innerHTML = '기본 문제은행으로 플레이합니다.';
+        return;
+      }
+      const set = publishedLearningSets.find(x => String(x.id) === String(id));
+      if (!set) return;
+      state.learningSetId = set.id;
+      state.learningSetTitle = set.title;
+      state.learningSetUnit = set.unit_name;
+      state.learningSetCategory = set.category;
+      const info = document.getElementById('student-learning-set-info');
+      if (info) info.innerHTML = `<span class="text-violet-300 font-bold">선택됨:</span> ${escapeHtml(set.unit_name)} · ${escapeHtml(set.category)} · ${escapeHtml(set.title)} <span class="text-slate-500">(v${set.version || 1} · 20문제 랜덤)</span>`;
+    }
+
+    async function initLearningArchive() {
+      if (!db) return;
+      await loadPublishedLearningSets();
+      if (!learningSetsChannel) {
+        learningSetsChannel = db.channel('learning-sets-live')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'learning_sets' }, () => loadPublishedLearningSets())
+          .subscribe();
+      }
+    }
+
+    function ensureTeacherPin(force = false) {
+      if (teacherPin && !force) return teacherPin;
+      const pin = prompt('교사용 아카이브 PIN을 입력하세요.');
+      if (!pin) return '';
+      teacherPin = pin.trim();
+      return teacherPin;
+    }
+
+    async function loadTeacherArchive(forcePin = false) {
+      if (!db) await initSharedRanking();
+      const pin = ensureTeacherPin(forcePin);
+      if (!pin) return;
+      const status = document.getElementById('teacher-archive-status');
+      if (status) status.innerText = '아카이브를 불러오는 중...';
+      const { data, error } = await db.rpc('teacher_list_learning_sets', { p_pin: pin });
+      if (error) {
+        teacherPin = '';
+        if (status) status.innerHTML = `<span class="text-rose-300">불러오기 실패: ${escapeHtml(error.message)}</span>`;
+        return;
+      }
+      teacherArchiveSets = data || [];
+      if (status) status.innerHTML = `총 <b class="text-violet-200">${teacherArchiveSets.length}</b>개 세트 · 공개 <b class="text-emerald-300">${teacherArchiveSets.filter(x=>x.is_published).length}</b>개`;
+      renderTeacherArchive();
+    }
+
+    function renderTeacherArchive() {
+      const el = document.getElementById('teacher-archive-list');
+      if (!el) return;
+      if (!teacherArchiveSets.length) {
+        el.innerHTML = '<div class="p-6 rounded-2xl border border-dashed border-slate-700 text-center text-xs text-slate-500">아직 저장된 문제 세트가 없습니다.</div>';
+        return;
+      }
+      el.innerHTML = teacherArchiveSets.map(set => `
+        <div class="p-4 rounded-2xl bg-slate-900/65 border ${set.is_published ? 'border-emerald-500/30' : 'border-slate-700'}">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div class="flex flex-wrap gap-1.5 items-center">
+                <span class="px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-200 text-[10px] font-bold">${escapeHtml(set.unit_name)}</span>
+                <span class="px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-200 text-[10px] font-bold">${escapeHtml(set.category)}</span>
+                <span class="px-2 py-0.5 rounded-full ${set.is_published ? 'bg-emerald-500/15 text-emerald-200' : 'bg-slate-700 text-slate-300'} text-[10px] font-bold">${set.is_published ? '학생 공개' : '비공개'}</span>
+                <span class="text-[10px] text-slate-500">v${set.version || 1}</span>
+                <span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-200 text-[10px] font-bold">20문제 · 5랜덤세트</span>
+              </div>
+              <div class="mt-2 text-sm font-extrabold text-slate-100">${escapeHtml(set.title)}</div>
+              <div class="mt-1 text-[11px] text-slate-500 line-clamp-2">${escapeHtml((set.content || '').slice(0, 180))}</div>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button onclick="applyArchivedSet('${set.id}')" class="px-2.5 py-1.5 rounded-lg bg-amber-500/15 text-amber-200 border border-amber-500/30 text-[11px] font-bold">적용</button>
+              <button onclick="editArchivedSet('${set.id}')" class="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 text-[11px] font-bold">수정</button>
+              <button onclick="toggleArchivedSetPublish('${set.id}', ${!set.is_published})" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-200 border border-emerald-500/30 text-[11px] font-bold">${set.is_published ? '비공개' : '공개'}</button>
+              <button onclick="deleteArchivedSet('${set.id}')" class="px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-300 border border-rose-500/25 text-[11px] font-bold">삭제</button>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    function newLearningSet() {
+      document.getElementById('archive-edit-id').value = '';
+      document.getElementById('archive-unit-input').value = '';
+      document.getElementById('archive-category-input').value = '문법';
+      document.getElementById('archive-title-input').value = '';
+      document.getElementById('custom-sentences-input').value = '';
+      switchTeacherTab('generator');
+    }
+
+    function editArchivedSet(id) {
+      const set = teacherArchiveSets.find(x => String(x.id) === String(id));
+      if (!set) return;
+      document.getElementById('archive-edit-id').value = set.id;
+      document.getElementById('archive-unit-input').value = set.unit_name || '';
+      document.getElementById('archive-category-input').value = set.category || '문법';
+      document.getElementById('archive-title-input').value = set.title || '';
+      document.getElementById('custom-sentences-input').value = set.content || '';
+      switchTeacherTab('generator');
+      showNotice(`✏️ ${set.unit_name} ${set.category} 세트를 수정 중입니다. 저장하면 v${(set.version || 1)+1}로 올라갑니다.`, 'info');
+    }
+
+    async function saveLearningSet(publishNow) {
+      if (!db) await initSharedRanking();
+      const pin = ensureTeacherPin(false);
+      if (!pin) return;
+      const id = document.getElementById('archive-edit-id').value || null;
+      const unit = document.getElementById('archive-unit-input').value.trim();
+      const category = document.getElementById('archive-category-input').value;
+      const title = document.getElementById('archive-title-input').value.trim();
+      const content = document.getElementById('custom-sentences-input').value.trim();
+      if (!unit || !title || !content) {
+        alert('단원, 세트 제목, 학습 내용을 모두 입력해 주세요.');
+        return;
+      }
+      const questionPack = generateQuestionPackFromContent(content, { unit_name: unit, category, title });
+      if (questionPack.length !== 5) {
+        alert('20문제 자동 생성에 실패했습니다. 영어 문장을 1개 이상 입력해 주세요.');
+        return;
+      }
+      const { data, error } = await db.rpc('teacher_save_learning_set', {
+        p_pin: pin, p_id: id, p_unit_name: unit, p_category: category,
+        p_title: title, p_content: content, p_question_pack: questionPack, p_is_published: !!publishNow
+      });
+      if (error) {
+        alert('저장 실패: ' + error.message);
+        return;
+      }
+      document.getElementById('archive-edit-id').value = data || id || '';
+      await loadPublishedLearningSets();
+      showNotice(publishNow ? '📢 저장 후 학생에게 공개했습니다.' : '💾 아카이브에 저장했습니다.', 'success');
+      switchTeacherTab('archive');
+      await loadTeacherArchive(false);
+    }
+
+    async function toggleArchivedSetPublish(id, publish) {
+      const pin = ensureTeacherPin(false);
+      if (!pin) return;
+      const { error } = await db.rpc('teacher_set_learning_set_published', { p_pin: pin, p_id: id, p_published: !!publish });
+      if (error) return alert('변경 실패: ' + error.message);
+      await loadPublishedLearningSets();
+      await loadTeacherArchive(false);
+    }
+
+    async function deleteArchivedSet(id) {
+      if (!confirm('이 문제 세트를 아카이브에서 삭제할까요? 기존 학생 랭킹 기록의 세트 이름은 그대로 남습니다.')) return;
+      const pin = ensureTeacherPin(false);
+      if (!pin) return;
+      const { error } = await db.rpc('teacher_delete_learning_set', { p_pin: pin, p_id: id });
+      if (error) return alert('삭제 실패: ' + error.message);
+      await loadPublishedLearningSets();
+      await loadTeacherArchive(false);
+    }
+
+    function applyArchivedSet(id) {
+      const set = teacherArchiveSets.find(x => String(x.id) === String(id));
+      if (!set) return;
+      const publishedMatch = publishedLearningSets.find(x => String(x.id) === String(id));
+      if (!publishedMatch) publishedLearningSets.push(set);
+      selectLearningSet(id);
+      const select = document.getElementById('student-learning-set-select');
+      renderStudentLearningSets();
+      if (select) select.value = id;
+      closeTeacherModal();
+      showNotice(`📚 ${set.unit_name} · ${set.category} · ${set.title} 세트를 현재 게임에 적용했습니다.`, 'success');
     }
 
     function handleFileUpload(event) {
@@ -2322,7 +2742,22 @@
         alert('학습지 영문장이나 문법 표현을 먼저 입력해 주세요.');
         return;
       }
-      showNotice('✨ 입력한 지문을 기반으로 방탈출 퀴즈가 성공적으로 재배치되었습니다!', 'success');
+      const unit = document.getElementById('archive-unit-input').value.trim() || '임시 세트';
+      const category = document.getElementById('archive-category-input').value || '문법';
+      const title = document.getElementById('archive-title-input').value.trim() || '현재 입력 내용';
+      const tempId = `temp-${Date.now()}`;
+      const questionPack = generateQuestionPackFromContent(text, { unit_name: unit, category, title });
+      const tempSet = { id: tempId, unit_name: unit, category, title, content: text, question_pack: questionPack, version: 1, is_published: false };
+      publishedLearningSets.push(tempSet);
+      state.learningSetId = tempId;
+      state.learningSetTitle = title;
+      state.learningSetUnit = unit;
+      state.learningSetCategory = category;
+      renderStudentLearningSets();
+      const select = document.getElementById('student-learning-set-select');
+      if (select) select.value = tempId;
+      selectLearningSet(tempId);
+      showNotice('✨ 입력한 학습 내용을 현재 방탈출에 적용했습니다. 저장하려면 아카이브 저장을 눌러주세요.', 'success');
       closeTeacherModal();
     }
 
@@ -2348,9 +2783,10 @@
       }, 3500);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       init3D();
-      initSharedRanking();
+      await initSharedRanking();
+      await initLearningArchive();
     });
   </script>
 </body>
