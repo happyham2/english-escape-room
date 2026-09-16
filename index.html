@@ -1,0 +1,3416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>잉글리시 탈출: 4개의 열쇠</title>
+  <!-- Tailwind CSS & Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+
+  <!-- Three.js & OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- SortableJS: drag & drop sentence ordering -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <!-- Supabase: 여러 학생이 같은 실시간 랭킹을 공유 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+  </script>
+
+  <style>
+    * { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #020617; }
+    #webgl-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; outline: none; }
+    
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.4); border-radius: 4px; }
+
+    @keyframes pulse-beacon {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 14px currentColor); }
+    }
+    .beacon-glow { animation: pulse-beacon 2s infinite ease-in-out; }
+
+    @keyframes shake-animation {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-9px); }
+      40%, 80% { transform: translateX(9px); }
+    }
+    .modal-shake { animation: shake-animation 0.45s ease-in-out; }
+
+    /* 선택한 답이 한눈에 보이도록 강한 선택 효과 */
+    .answer-selected {
+      border-color: #67e8f9 !important;
+      background: linear-gradient(135deg, rgba(6,182,212,.38), rgba(37,99,235,.32)) !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 0 4px rgba(103,232,249,.22), 0 0 24px rgba(34,211,238,.45) !important;
+      transform: scale(1.025);
+    }
+    .answer-selected::after {
+      content: '  ✓ 선택됨';
+      color: #a7f3d0;
+      font-weight: 900;
+      margin-left: .45rem;
+    }
+  
+    :root { --mint:#b7ff5c; --ink:#11142a; }
+    button {touch-action:manipulation;}
+    button:focus-visible,input:focus-visible,select:focus-visible {outline:3px solid #b7ff5c;outline-offset:4px;}
+    .glass-panel {background:rgba(19,23,44,.96);border-color:#454969;box-shadow:0 16px 60px #05071355;}
+    #start-modal {background:radial-gradient(ellipse at 8% 15%,#345451 0,transparent 45%),radial-gradient(ellipse at 94% 80%,#4b306b 0,transparent 45%),#101322;}
+    #start-modal>.glass-panel {max-width:1040px;display:grid;grid-template-columns:1.08fr 1fr;gap:18px 36px;padding:36px;border-radius:30px;background:#191d32;}
+    #start-modal>.glass-panel>div {margin-bottom:0;}
+    #start-modal .lobby-hero {grid-column:1;grid-row:1/7;text-align:left;display:flex;flex-direction:column;justify-content:center;}
+    #start-modal h1 {font-size:clamp(38px,5vw,62px);line-height:1.05;letter-spacing:-3px;color:#f3f4ff;background:none;}
+    .hero-tag {font-size:11px;letter-spacing:3px;font-weight:800;color:#b7ff5c;margin-bottom:20px;}
+    .hero-sub {color:#b5bad2;font-size:14px;line-height:1.8;margin:20px 0;max-width:330px;}
+    .hero-stats {display:flex;gap:10px;margin-top:20px;}
+    .hero-stats span {font-size:11px;border:1px solid #474b65;border-radius:9px;padding:8px 12px;color:#d0d4e8;}
+    .room-art {height:215px;position:relative;background:radial-gradient(ellipse,#8272db44,transparent 70%);overflow:hidden;}
+    .room-art svg {width:100%;height:100%;}
+    .tier-btn {position:relative;min-height:118px!important;padding:14px 10px!important;background:#222740!important;border:1px solid #424964!important;transition:transform .2s,border-color .2s;}
+    .tier-btn:before {content:'✦';display:block;font-size:29px;color:#b7ff5c;margin-bottom:8px;}
+    #tier-btn-normal:before {content:'▦';color:#ff88dc;} #tier-btn-hard:before {content:'◈';color:#b6a0ff;}
+    .tier-btn[aria-pressed=true] {border:2px solid #b7ff5c!important;background:#334137!important;}
+    .tier-btn:hover,.agent-btn:hover {transform:translateY(-3px);}
+    .agent-btn {background:#242941;border-radius:14px;min-height:66px;}
+    #start-modal button[onclick="startGame()"] {background:#b7ff5c;color:#17230a;box-shadow:0 5px 0 #6c9b32;min-height:52px;grid-column:2;}
+    #start-modal button[onclick="startGame()"]:hover {background:#caff85;}
+    #start-modal input,#start-modal select {background:#111628;border-color:#414861;min-height:44px;}
+    #puzzle-card {max-width:650px;border-radius:26px;border-top:5px solid #b7ff5c;}
+    #puzzle-prompt-box {font-size:16px;line-height:1.85;}
+    #puzzle-interactive-area button {min-height:46px;}
+    #puzzle-step-badge {color:#b7ff5c;letter-spacing:1px;}
+    #in-game-footer {bottom:18px;flex-direction:column;gap:10px;}
+    #in-game-footer>.glass-panel {font-size:11px;padding:7px 16px;}
+    .quest-dock {pointer-events:auto;display:flex;gap:8px;padding:10px;background:#151a2ef2;border:1px solid #515873;border-radius:20px;box-shadow:0 12px 35px #0005;}
+    .quest-dock button {min-width:94px;min-height:58px;border:1px solid #444d69;border-radius:12px;background:#282f4b;color:#eef1ff;font-size:12px;font-weight:700;padding:7px 12px;}
+    .quest-dock button.done {background:#344930;border-color:#b7ff5c;color:#caff85;}
+    .quest-dock button:last-child {background:#b7ff5c;color:#182309;}
+    .mission-status {pointer-events:none;text-align:center;background:#12182edc;border:1px solid #5a6279;padding:8px 18px;border-radius:12px;font-size:13px;color:#ecf6ff;}
+    #reward-pop {position:fixed;z-index:45;left:50%;top:28%;transform:translateX(-50%);padding:24px 36px;border-radius:24px;background:#b7ff5c;color:#182309;text-align:center;box-shadow:0 15px 70px #0007;pointer-events:none;}
+    #reward-pop strong {display:block;font-size:27px;} #reward-pop span {font-size:14px;}
+    #game-notice {max-width:min(90vw,650px);}
+    @media(max-width:760px) {
+      #start-modal>.glass-panel {max-width:520px;display:flex;flex-direction:column;padding:24px;gap:18px;}
+      #start-modal .lobby-hero {text-align:center;align-items:center;} #start-modal h1 {font-size:42px;}
+      .hero-tag {margin-bottom:12px;} .hero-sub {margin:12px 0;} .room-art {height:140px;width:100%;} .hero-stats {display:none;}
+      .quest-dock {gap:5px;padding:7px;width:100%;} .quest-dock button {min-width:0;flex:1;padding:6px 4px;font-size:11px;}
+      #in-game-hud {gap:5px;} #in-game-hud>.glass-panel {padding:8px 10px;} #hud-tier-badge {display:none;}
+      .mission-status {font-size:11px;} #in-game-footer {bottom:8px;padding:0 8px;} #puzzle-card {padding:22px;}
+    }
+    @media(prefers-reduced-motion:reduce) {*,*::before,*::after {animation:none!important;transition:none!important;}}
+
+</style>
+</head>
+<body class="text-slate-100">
+
+  <!-- 3D WebGL Canvas Viewport -->
+  <div id="webgl-container"></div>
+
+  <!-- IN-GAME HUD (Top Navigation & Stats) -->
+  <header id="in-game-hud" class="hidden absolute top-3 left-3 right-3 z-30 flex flex-wrap justify-between items-center gap-2 pointer-events-none">
+    <!-- Player Profile & Theme Badge -->
+    <div class="pointer-events-auto glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-3 shadow-xl">
+      <div id="hud-avatar" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-xl shadow-md">
+        ⚡
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span id="hud-player-name" class="font-bold text-slate-100 text-sm md:text-base">20101 홍길동</span>
+          <span id="hud-tier-badge" class="text-xs px-2 py-0.5 rounded-full font-bold bg-sky-500/20 text-sky-300 border border-sky-400/40">
+            🟢 LEVEL 1 민트 게임 라운지
+          </span>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+          <span><i class="fa-solid fa-clock text-cyan-400 mr-1"></i><span id="hud-timer" class="font-mono text-cyan-200">00:00</span></span>
+          <span><i class="fa-solid fa-star text-amber-400 mr-1"></i><span id="hud-score" class="font-mono text-amber-200">0 XP</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Central Key Slot HUD (4-Slot Passcode) -->
+    <div class="pointer-events-auto glass-panel px-4 py-2 rounded-2xl flex items-center gap-2.5 shadow-xl">
+      <div class="text-xs font-semibold text-slate-300 mr-1 hidden sm:inline-flex items-center gap-1.5">
+        <i class="fa-solid fa-key text-amber-400"></i> 해독 키:
+      </div>
+      <div id="key-slot-0" class="w-8 h-8 rounded-lg bg-slate-800/90 border border-dashed border-slate-600 flex items-center justify-center font-bold text-slate-500 text-sm transition-all duration-300">?</div>
+      <div id="key-slot-1" class="w-8 h-8 rounded-lg bg-slate-800/90 border border-dashed border-slate-600 flex items-center justify-center font-bold text-slate-500 text-sm transition-all duration-300">?</div>
+      <div id="key-slot-2" class="w-8 h-8 rounded-lg bg-slate-800/90 border border-dashed border-slate-600 flex items-center justify-center font-bold text-slate-500 text-sm transition-all duration-300">?</div>
+      <div id="key-slot-3" class="w-8 h-8 rounded-lg bg-slate-800/90 border border-dashed border-slate-600 flex items-center justify-center font-bold text-slate-500 text-sm transition-all duration-300">?</div>
+    </div>
+
+    <!-- Controls & Quick Menu -->
+    <div class="pointer-events-auto flex items-center gap-2">
+      <button onclick="toggleJournalModal(true)" class="glass-panel hover:bg-slate-800/90 text-slate-200 hover:text-cyan-300 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 shadow-lg">
+        <i class="fa-solid fa-book-bookmark text-cyan-400"></i>
+        <span class="hidden md:inline">미션 노트</span>
+      </button>
+      <button onclick="openTeacherModal()" class="glass-panel bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/40 text-amber-300 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 shadow-lg">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        <span>교사용 관제탑</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- BOTTOM HELPER CONTROLS -->
+  <div id="in-game-footer" class="hidden absolute bottom-4 left-0 right-0 z-30 flex justify-center items-center pointer-events-none px-4">
+    <div id="mission-status" class="mission-status" aria-live="polite">빛나는 물건을 누르거나 아래 미션을 선택해 봐!</div>
+    <nav class="quest-dock" aria-label="미션 바로가기"><button id="quest-0" onclick="launchQuest(0)">▣ 01<br>태블릿</button><button id="quest-1" onclick="launchQuest(1)">▤ 02<br>서가</button><button id="quest-2" onclick="launchQuest(2)">✦ 03<br>문장 조립</button><button id="quest-3" onclick="launchQuest(3)">▧ 04<br>금고</button><button id="quest-4" onclick="launchQuest(4)">↗ <br>출구</button></nav>
+    <div class="pointer-events-auto glass-panel px-4 py-2 rounded-full text-xs text-slate-300 flex items-center gap-3 shadow-lg border-sky-400/30 text-center">
+      <span class="flex items-center gap-1 text-cyan-300"><i class="fa-solid fa-computer-mouse mr-1"></i>마우스/터치 드래그: 360° 회전</span>
+      <span class="text-slate-600 hidden sm:inline">|</span>
+      <span class="flex items-center gap-1 text-amber-300"><i class="fa-solid fa-bullseye mr-1"></i>빛나는 오브젝트 클릭: 조사</span>
+    </div>
+  </div>
+
+  <div id="reward-pop" class="hidden" role="status" aria-live="polite"></div>
+  <!-- START / LOBBY SCREEN -->
+  <div id="start-modal" class="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 overflow-y-auto">
+    <div class="glass-panel w-full max-w-xl rounded-3xl p-6 md:p-8 shadow-2xl border-cyan-400/40 relative my-auto">
+      <div class="lobby-hero">
+        <div class="hero-tag">ENGLISH ESCAPE · FOUR KEYS</div>
+        <h1 style="font-size:clamp(32px,4vw,48px);letter-spacing:-2px">잉글리시 탈출:<br><span style="color:#b7ff5c">4개의 열쇠</span></h1>
+        <p class="hero-sub">학교에 숨겨진 비밀 공간이 열렸다.<br>네 개의 문법 미션을 깨고,<br>마지막 출구의 비밀번호를 완성해 봐.</p>
+        <div class="room-art" aria-hidden="true"><svg viewBox="0 0 420 230"><path d="M50 150 210 65 380 150 210 226Z" fill="#323956"/><path d="M50 150V40L210 0V65Z" fill="#465b59"/><path d="M210 0 380 45V150L210 65Z" fill="#34334e"/><path d="M58 145 210 71 372 146" fill="none" stroke="#b7ff5c" stroke-width="3"/><path d="M290 111V39L344 55V136Z" fill="#a790ff"/><path d="M299 108V53L335 64V123Z" fill="#211c41"/><circle cx="326" cy="96" r="3" fill="#b7ff5c"/><path d="M91 100 155 71 190 90 124 120Z" fill="#b7ff5c"/><path d="M102 108V143M176 96V128" stroke="#8b9f91" stroke-width="8"/><path d="m125 88 0-36 34-11v33Z" fill="#171d31" stroke="#9c8ef0" stroke-width="4"/><path d="m130 64 21-7M130 72l14-5" stroke="#b7ff5c" stroke-width="3"/><path d="m226 157 28-15 28 15-28 15Z" fill="#ffb1dc"/><path d="M226 157v26l28 15v-26Z" fill="#b35b9e"/><path d="M254 172v26l28-15v-26Z" fill="#773c87"/><circle cx="192" cy="135" r="17" fill="#f6f9f0"/><rect x="179" y="130" width="26" height="12" rx="6" fill="#242b43"/><circle cx="186" cy="136" r="3" fill="#b7ff5c"/><circle cx="198" cy="136" r="3" fill="#b7ff5c"/><path d="M192 119v-9" stroke="#b7ff5c" stroke-width="3"/><circle cx="192" cy="108" r="4" fill="#b7ff5c"/></svg></div>
+        <div class="hero-stats"><span>3개의 비밀 공간</span><span>4개의 미션</span><span>나만의 탈출 기록</span></div>
+      </div>
+      <!-- Player Name Input -->
+      <div class="mb-5">
+        <label class="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+          <i class="fa-solid fa-id-card text-cyan-400"></i> 플레이어 학번 이름
+        </label>
+        <input id="input-player-name" type="text" value="20101 홍길동" placeholder="예: 20101 홍길동"
+          class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 transition-colors">
+      </div>
+
+      <!-- Character Agent Selection -->
+      <div class="mb-5">
+        <label class="block text-xs font-semibold text-slate-300 mb-2">
+          ⚡ 에이전트 캐릭터 선택
+        </label>
+        <div class="grid grid-cols-4 gap-2">
+          <button type="button" onclick="selectAgent('neon', '⚡', '네온 러너')" class="agent-btn p-2.5 rounded-xl border border-cyan-400 bg-cyan-500/20 text-center transition-all">
+            <div class="text-2xl mb-1">⚡</div>
+            <div class="text-[11px] font-bold text-cyan-300">네온러너</div>
+          </button>
+          <button type="button" onclick="selectAgent('hacker', '🧠', '사이버해커')" class="agent-btn p-2.5 rounded-xl border border-slate-700 bg-slate-900/60 text-center transition-all hover:border-slate-500">
+            <div class="text-2xl mb-1">🧠</div>
+            <div class="text-[11px] font-bold text-slate-300">사이버해커</div>
+          </button>
+          <button type="button" onclick="selectAgent('shadow', '🕵️', '섀도우요원')" class="agent-btn p-2.5 rounded-xl border border-slate-700 bg-slate-900/60 text-center transition-all hover:border-slate-500">
+            <div class="text-2xl mb-1">🕵️</div>
+            <div class="text-[11px] font-bold text-slate-300">섀도우요원</div>
+          </button>
+          <button type="button" onclick="selectAgent('bot', '🤖', '메카봇')" class="agent-btn p-2.5 rounded-xl border border-slate-700 bg-slate-900/60 text-center transition-all hover:border-slate-500">
+            <div class="text-2xl mb-1">🤖</div>
+            <div class="text-[11px] font-bold text-slate-300">메카봇</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Learning Set Selection -->
+      <div class="mb-5">
+        <label class="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+          <i class="fa-solid fa-box-archive text-violet-400"></i> 오늘의 학습 세트
+        </label>
+        <select id="student-learning-set-select" onchange="selectLearningSet(this.value)"
+          class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-violet-400 transition-colors">
+          <option value="">기본 방탈출 문제 세트</option>
+        </select>
+        <div id="student-learning-set-info" class="mt-2 text-[11px] text-slate-400">
+          선생님이 공개한 단원별 세트가 여기에 표시됩니다.
+        </div>
+      </div>
+
+      <!-- Difficulty Level Selection -->
+      <div class="mb-6">
+        <label class="block text-xs font-semibold text-slate-300 mb-2">
+          🎮 1단계 쉬움 → 2단계 중간 → 3단계 어려움
+        </label>
+        <div class="grid grid-cols-3 gap-2.5">
+          <button type="button" onclick="selectDifficulty('easy')" id="tier-btn-easy" class="tier-btn p-3 rounded-2xl border-2 border-emerald-400 bg-emerald-500/20 text-left transition-all">
+            <div class="text-xs font-extrabold text-emerald-300">🟢 LEVEL 1 (하)</div>
+            <div class="text-[11px] text-slate-300 mt-1 font-semibold">민트 게임 라운지</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">기초 목적격 관계사</div>
+          </button>
+          <button type="button" onclick="selectDifficulty('normal')" id="tier-btn-normal" class="tier-btn p-3 rounded-2xl border-2 border-slate-700 bg-slate-900/60 text-left transition-all hover:border-slate-500">
+            <div class="text-xs font-extrabold text-cyan-400">🟡 LEVEL 2 (중)</div>
+            <div class="text-[11px] text-slate-300 mt-1 font-semibold">네온 아케이드</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">실전 어법 오류 추론</div>
+          </button>
+          <button type="button" onclick="selectDifficulty('hard')" id="tier-btn-hard" class="tier-btn p-3 rounded-2xl border-2 border-slate-700 bg-slate-900/60 text-left transition-all hover:border-slate-500">
+            <div class="text-xs font-extrabold text-amber-400">🔴 LEVEL 3 (상)</div>
+            <div class="text-[11px] text-slate-300 mt-1 font-semibold">별빛 포털룸</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">긴 문장 속 목적격 관계사</div>
+          </button>
+        </div>
+      </div>
+
+      <button onclick="startGame()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-base shadow-lg shadow-cyan-500/25 transition-all flex items-center justify-center gap-2">
+        <span>입장하기 →</span>
+        <i class="fa-solid fa-door-open"></i>
+      </button>
+      <button id="lobby-teacher-button" type="button" onclick="openTeacherModal()" style="grid-column:2;min-height:44px;border:1px solid #64708c;border-radius:14px;background:#242b43;color:#f7d890;font-size:13px;font-weight:700;" aria-haspopup="dialog" aria-controls="teacher-modal">
+        <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i> 교사용 관제탑 · 학습 세트 / 랭킹 관리
+      </button>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE PUZZLE MODAL -->
+  <div id="puzzle-modal" class="hidden absolute inset-0 z-40 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto">
+    <div id="puzzle-card" class="glass-panel w-full max-w-lg rounded-3xl p-6 md:p-7 shadow-2xl border-cyan-400/40 relative transition-all duration-300 my-auto">
+      
+      <!-- Close Button -->
+      <button onclick="closePuzzleModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-100 flex items-center justify-center transition-colors">
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
+
+      <!-- Modal Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <div id="puzzle-icon" class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-lg border border-cyan-400/30">
+          <i class="fa-solid fa-puzzle-piece"></i>
+        </div>
+        <div>
+          <span id="puzzle-step-badge" class="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 uppercase">
+            MISSION 1
+          </span>
+          <h2 id="puzzle-title" class="text-lg md:text-xl font-bold text-slate-100 mt-0.5">단서 제목</h2>
+        </div>
+      </div>
+
+      <!-- Question Prompt Area -->
+      <div id="puzzle-prompt-box" class="glass-card rounded-2xl p-4 mb-4 text-xs md:text-sm text-slate-200 leading-relaxed border-slate-700/60">
+        문제가 여기에 표시됩니다.
+      </div>
+
+      <!-- Interactive Input Area -->
+      <div id="puzzle-interactive-area" class="mb-4"></div>
+
+      <!-- Error / Notice Banner -->
+      <div id="puzzle-error-banner" class="hidden mb-3 p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+        <i class="fa-solid fa-circle-exclamation text-sm"></i>
+        <span id="puzzle-error-msg">오답입니다.</span>
+      </div>
+
+      <!-- Teacher Hint Drawer -->
+      <div id="puzzle-hint-box" class="hidden mb-4 p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs leading-relaxed">
+        💡 <span class="font-bold">선생님 힌트:</span> <span id="puzzle-hint-text"></span>
+      </div>
+
+      <!-- Footer Action Buttons -->
+      <div class="flex items-center justify-between gap-3 pt-2">
+        <button id="btn-show-hint" onclick="toggleHint()" class="px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-amber-300 text-xs font-semibold border border-amber-400/30 transition-all flex items-center gap-1.5">
+          <i class="fa-regular fa-lightbulb"></i>
+          <span>선생님 힌트</span>
+        </button>
+        <button id="btn-submit-puzzle" onclick="checkPuzzleAnswer()" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+          <span>정답 확인 및 키 획득</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- INVESTIGATION JOURNAL MODAL -->
+  <div id="journal-modal" class="hidden absolute inset-0 z-40 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="glass-panel w-full max-w-lg rounded-3xl p-6 shadow-2xl border-cyan-400/40 relative max-h-[88vh] overflow-y-auto custom-scrollbar my-auto">
+      <button onclick="toggleJournalModal(false)" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-100 flex items-center justify-center">
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
+      
+      <div class="flex items-center gap-2.5 mb-4">
+        <i class="fa-solid fa-book-bookmark text-cyan-400 text-xl"></i>
+        <h2 class="text-lg font-bold text-slate-100">요원 미션 노트 & 영문법 레퍼런스</h2>
+      </div>
+
+      <!-- 4 Keys Status -->
+      <div class="grid grid-cols-2 gap-2 mb-5">
+        <div class="glass-card p-3 rounded-xl">
+          <div class="text-[11px] text-slate-400">① 태블릿 (책상)</div>
+          <div id="journal-key-0" class="text-sm font-bold text-slate-400 mt-1">미발견 🔒</div>
+        </div>
+        <div class="glass-card p-3 rounded-xl">
+          <div class="text-[11px] text-slate-400">② 스마트 서가 (책장)</div>
+          <div id="journal-key-1" class="text-sm font-bold text-slate-400 mt-1">미발견 🔒</div>
+        </div>
+        <div class="glass-card p-3 rounded-xl">
+          <div class="text-[11px] text-slate-400">③ 중앙 단말기 (콘솔)</div>
+          <div id="journal-key-2" class="text-sm font-bold text-slate-400 mt-1">미발견 🔒</div>
+        </div>
+        <div class="glass-card p-3 rounded-xl">
+          <div class="text-[11px] text-slate-400">④ 시큐리티 금고 (금고)</div>
+          <div id="journal-key-3" class="text-sm font-bold text-slate-400 mt-1">미발견 🔒</div>
+        </div>
+      </div>
+
+      <!-- Grammar Rules Reference -->
+      <div class="space-y-2.5 text-xs text-slate-300">
+        <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
+          <div class="font-bold text-cyan-300 mb-1">📘 1. 목적격 관계대명사</div>
+          <div>두 문장을 하나로 연결하며, 뒷문장에서 목적어 역할을 하는 관계대명사입니다. (선행사가 사물일 때 <code class="text-amber-300 font-bold">which/that</code>, 사람일 때 <code class="text-amber-300 font-bold">whom/who/that</code>)</div>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
+          <div class="font-bold text-emerald-300 mb-1">⚠️ 2. 목적어 중복 금지 규칙</div>
+          <div>관계대명사절 뒤에 목적어 대명사(<code class="text-rose-300 font-bold">it / them</code>)를 또 쓰면 틀립니다!</div>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
+          <div class="font-bold text-purple-300 mb-1">✂️ 3. 목적격 관계대명사 생략</div>
+          <div>목적격 관계대명사는 단독으로 <span class="text-amber-300 font-bold">생략 가능</span>합니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHER CONTROL DASHBOARD MODAL -->
+  <div id="teacher-modal" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto">
+    <div class="glass-panel w-full max-w-3xl rounded-3xl p-6 md:p-7 shadow-2xl border-amber-500/40 relative max-h-[90vh] overflow-y-auto custom-scrollbar my-auto">
+      <button onclick="closeTeacherModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-100 flex items-center justify-center">
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg border border-amber-500/30">
+          <i class="fa-solid fa-chalkboard-user"></i>
+        </div>
+        <div>
+          <h2 class="text-lg md:text-xl font-bold text-amber-200">영어 교사용 관제탑 & 라이브 랭킹</h2>
+          <p class="text-xs text-slate-400">실시간 학급 진행 현황 모니터링 및 교과서 맞춤형 문제 생성</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex gap-2 border-b border-slate-700/60 pb-3 mb-5">
+        <button id="tab-btn-ranking" onclick="switchTeacherTab('ranking')" class="px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
+          🏆 실시간 학급 랭킹
+        </button>
+        <button id="tab-btn-generator" onclick="switchTeacherTab('generator')" class="px-4 py-2 rounded-xl bg-slate-800/70 text-slate-400 text-xs font-bold hover:text-slate-200">
+          📁 교과서 PDF / 학습지 문제 생성기
+        </button>
+        <button id="tab-btn-archive" onclick="switchTeacherTab('archive')" class="px-4 py-2 rounded-xl bg-slate-800/70 text-slate-400 text-xs font-bold hover:text-slate-200">
+          🗂️ 단원별 문제 아카이브
+        </button>
+      </div>
+
+      <!-- TAB 1: LIVE RANKING -->
+      <div id="teacher-tab-ranking">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4 p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
+          <div class="flex items-center gap-2">
+            <button data-ranking-reset onclick="resetClassScores()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 text-xs font-semibold">
+              기록 초기화
+            </button>
+          </div>
+          <button onclick="downloadRankingBackup()" class="px-3 py-1.5 text-xs text-cyan-300 underline">이 기기 완료 기록 백업</button><button onclick="exportCSV()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-semibold">
+            <i class="fa-solid fa-file-csv mr-1"></i> 성적표 CSV 내보내기
+          </button>
+        </div>
+
+        <div id="ranking-connection-status" class="mb-3 p-3 rounded-xl bg-slate-900/70 border border-slate-700 text-xs text-slate-300">
+          🔌 실시간 학급 DB 연결 상태를 확인하는 중입니다...
+        </div>
+
+        <div class="glass-card rounded-2xl overflow-hidden border-slate-700/60">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900/80 text-slate-400 text-[11px] border-b border-slate-700/60 uppercase">
+              <tr>
+                <th class="py-2.5 px-3">순위</th>
+                <th class="py-2.5 px-3">학번 이름</th>
+                <th class="py-2.5 px-3">난이도</th>
+                <th class="py-2.5 px-3">해독 열쇠</th>
+                <th class="py-2.5 px-3">소요 시간</th>
+                <th class="py-2.5 px-3">상태</th>
+              </tr>
+            </thead>
+            <tbody id="ranking-tbody" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+
+        <button id="ranking-next-stage-btn" onclick="openNextStageModal()" class="hidden w-full mt-4 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-extrabold text-sm shadow-lg transition-all">
+          순위 확인 완료 → 다음 단계 도전 🚀
+        </button>
+      </div>
+
+      <!-- TAB 2: AI QUESTION GENERATOR -->
+      <div id="teacher-tab-generator" class="hidden space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1">단원</label>
+            <input id="archive-unit-input" type="text" placeholder="예: 5단원" class="w-full bg-slate-950/70 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-violet-400">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1">영역</label>
+            <select id="archive-category-input" class="w-full bg-slate-950/70 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-violet-400">
+              <option>문법</option><option>단어</option><option>독해</option><option>기타</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1">세트 제목</label>
+            <input id="archive-title-input" type="text" placeholder="예: 관계대명사 목적격" class="w-full bg-slate-950/70 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-violet-400">
+          </div>
+        </div>
+        <input id="archive-edit-id" type="hidden" value="">
+        <div id="pdf-dropzone" onclick="document.getElementById('pdf-file-input').click()"
+          class="border-2 border-dashed border-slate-600 hover:border-cyan-400 rounded-2xl p-6 text-center cursor-pointer bg-slate-900/40 hover:bg-cyan-500/5 transition-all">
+          <input type="file" id="pdf-file-input" accept=".pdf,.hwp,.hwpx,.txt" class="hidden" onchange="handleFileUpload(event)">
+          <i class="fa-solid fa-cloud-arrow-up text-3xl text-cyan-400 mb-2"></i>
+          <div class="text-xs md:text-sm font-bold text-slate-200">
+            교과서 PDF 또는 학습지 파일 업로드 (드래그 앤 드롭)
+          </div>
+          <div class="text-[11px] text-slate-400 mt-1">
+            PDF에서 문장을 추출합니다. 검수 원문이 5개 미만이면 중2 목적격 관계대명사 예비 문제로 5세트를 구성합니다.
+          </div>
+          <div class="text-[10px] text-amber-300/80 mt-1.5">
+            * HWP 파일은 한글 프로그램에서 [파일 ➔ PDF로 저장] 후 업로드하시거나 아래 입력창에 문장을 직접 복사해 주세요.
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">
+            📝 교과서 전 단원 주요 문법 표현 및 학습 문장 직접 입력
+          </label>
+          <textarea id="custom-sentences-input" rows="5" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl p-3 text-xs text-slate-100 focus:outline-none focus:border-cyan-400 transition-colors custom-scrollbar" placeholder="예:&#10;1) Do you know the book which Mike is reading?&#10;2) The pasta that the chef cooked was delicious.&#10;3) I like the boy who plays the guitar well."></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <button onclick="generateCustomPuzzles()" class="py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles"></i><span>현재 게임에 적용</span>
+          </button>
+          <button onclick="saveLearningSet(false)" class="py-2.5 rounded-xl bg-violet-500/20 hover:bg-violet-500/30 border border-violet-400/40 text-violet-200 font-extrabold text-xs transition-all">
+            💾 아카이브 저장
+          </button>
+          <button onclick="saveLearningSet(true)" class="py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition-all">
+            📢 저장 + 학생 공개
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-500">검수 원문이 5개 이상 일치하면 해당 문장을 사용하고, 그렇지 않으면 중2 목적격 관계대명사 예비 문제로 4문제 × 5세트를 만듭니다. 학생은 게임에 들어갈 때마다 5세트 중 1세트를 무작위로 풉니다. 수정 저장 시 버전 번호가 올라갑니다.</p>
+      </div>
+
+      <!-- TAB 3: LEARNING SET ARCHIVE -->
+      <div id="teacher-tab-archive" class="hidden space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
+          <div>
+            <div class="text-sm font-extrabold text-violet-200">🗂️ 단원별 문제 아카이브</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">5단원 문법 · 6단원 단어처럼 저장하고 학생 공개 여부를 관리합니다.</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="loadTeacherArchive(false)" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700">새로고침</button>
+            <button onclick="newLearningSet()" class="px-3 py-2 rounded-xl bg-violet-500 hover:bg-violet-400 text-white text-xs font-bold">+ 새 세트</button>
+          </div>
+        </div>
+        <div id="teacher-archive-status" class="text-xs text-slate-400">교사용 PIN을 입력하면 저장된 세트를 불러옵니다.</div>
+        <div id="teacher-archive-list" class="space-y-2"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- VICTORY / ESCAPE CELEBRATION MODAL -->
+  <div id="victory-modal" class="hidden absolute inset-0 z-[60] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto">
+    <div class="glass-panel w-full max-w-md rounded-3xl p-6 md:p-8 text-center shadow-2xl border-emerald-400/50 my-auto">
+      <div class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-300 border-2 border-emerald-400 flex items-center justify-center text-3xl mx-auto mb-4 animate-bounce">
+        🏆
+      </div>
+      <span class="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 uppercase">
+        ESCAPE SUCCESSFUL!
+      </span>
+      <h2 class="text-2xl font-black text-slate-100 mt-3">방탈출 성공!</h2>
+      <p id="victory-delivery-status" role="status" class="text-xs text-cyan-200 mt-3"></p>
+      <p class="text-xs text-slate-300 mt-1">스마트 아카데미 영문법 미션을 완벽하게 클리어했습니다.</p>
+
+      <div class="glass-card rounded-2xl p-4 my-5 text-left text-xs space-y-2 border-slate-700/60">
+        <div class="flex justify-between">
+          <span class="text-slate-400">요원 이름:</span>
+          <span id="victory-player" class="font-bold text-slate-200">20101 홍길동</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">클리어 난이도:</span>
+          <span id="victory-tier" class="font-bold text-cyan-300">🟢 LEVEL 1</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">최종 탈출 시간:</span>
+          <span id="victory-time" class="font-mono font-bold text-amber-300">03:45</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">해독 보안 코드:</span>
+          <span id="victory-code" class="font-mono font-bold text-emerald-300 tracking-wider">LINK</span>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="viewRankingFromVictory()" class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all">
+          전체 랭킹 확인
+        </button>
+        <button onclick="restartGame()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-extrabold text-xs shadow-lg transition-all">
+          처음 화면으로
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEXT STAGE CHALLENGE MODAL -->
+  <div id="next-stage-modal" class="hidden absolute inset-0 z-[70] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 overflow-y-auto">
+    <div class="glass-panel w-full max-w-md rounded-3xl p-6 md:p-8 text-center shadow-2xl border-cyan-400/50 my-auto">
+      <div class="w-16 h-16 rounded-full bg-cyan-500/20 text-cyan-200 border-2 border-cyan-400 flex items-center justify-center text-3xl mx-auto mb-4">🚀</div>
+      <h2 class="text-2xl font-black text-slate-100">다음 단계에 도전할까요?</h2>
+      <p class="text-xs text-slate-400 mt-2 mb-5">1단계 쉬움 → 2단계 중간 → 3단계 어려움 순서로 완료하세요. 완료한 단계는 다시 도전할 수 있습니다.</p>
+
+      <div class="grid grid-cols-1 gap-3 text-left">
+        <button onclick="challengeLevel('easy')" class="p-4 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/30 border-2 border-emerald-400/40 hover:border-emerald-300 transition-all">
+          <div class="font-extrabold text-emerald-200">🟢 LEVEL 1 · 민트 게임 라운지</div>
+          <div class="text-[11px] text-slate-400 mt-1">기초 목적격 관계사</div>
+        </button>
+        <button onclick="challengeLevel('normal')" class="p-4 rounded-2xl bg-cyan-500/15 hover:bg-cyan-500/30 border-2 border-cyan-400/40 hover:border-cyan-300 transition-all">
+          <div class="font-extrabold text-cyan-200">🟡 LEVEL 2 · 네온 아케이드</div>
+          <div class="text-[11px] text-slate-400 mt-1">실전 어법 오류 추론</div>
+        </button>
+        <button onclick="challengeLevel('hard')" class="p-4 rounded-2xl bg-amber-500/15 hover:bg-amber-500/30 border-2 border-amber-400/40 hover:border-amber-300 transition-all">
+          <div class="font-extrabold text-amber-200">🔴 LEVEL 3 · 별빛 포털룸</div>
+          <div class="text-[11px] text-slate-400 mt-1">긴 문장 속 목적격 관계사</div>
+        </button>
+      </div>
+
+      <button onclick="restartGameFromNextStage()" class="w-full mt-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-all">
+        처음 화면으로 돌아가기
+      </button>
+    </div>
+  </div>
+
+  <div id="ranking-backup-panel" hidden class="fixed bottom-2 left-2 right-2 z-[90] rounded-xl bg-slate-900 border border-cyan-500/40 p-3 text-xs text-slate-100 shadow-xl" style="max-width:560px;margin:auto">
+    <p id="ranking-delivery-status" role="status" aria-live="polite"></p>
+    <button onclick="flushRankingReceipts()" class="mt-2 mr-3 underline">서버 저장 다시 확인</button>
+    <button onclick="downloadRankingBackup()" class="mt-2 underline">이 기기의 완료 기록 다운로드</button>
+    <button onclick="document.getElementById('ranking-backup-panel').hidden=true" class="ml-3 underline">접기</button>
+  </div>
+  <!-- IN-GAME NOTIFICATION TOAST -->
+  <div id="game-notice" class="hidden absolute top-20 left-1/2 -translate-x-1/2 z-40 glass-panel px-4 py-2.5 rounded-2xl shadow-xl border-cyan-400/50 flex items-center gap-2 text-xs font-semibold text-slate-100 transition-all pointer-events-none">
+    <i id="notice-icon" class="fa-solid fa-circle-check text-cyan-400"></i>
+    <span id="notice-text">알림 메시지</span>
+  </div>
+
+  <!-- APPLICATION LOGIC & THREE.JS ENGINE -->
+  <script>
+    /* =========================================================================
+       1. GAME STATE & 60 BALANCED RANDOMIZED QUESTION POOLS
+       ========================================================================= */
+    const state = {
+      playerName: '20101 홍길동',
+      agent: { id: 'neon', emoji: '⚡', name: '네온 러너' },
+      difficulty: 'easy',
+      isPlaying: false,
+      startTime: 0,
+      timerInterval: null,
+      keysCollected: [false, false, false, false],
+      currentPasscode: 'LINK',
+      score: 0,
+      activePuzzleKey: null,
+      learningSetId: null,
+      learningSetTitle: '기본 문제 세트',
+      learningSetUnit: '',
+      learningSetCategory: ''
+    };
+
+    const PASSCODE_POOLS = {
+      easy: ['LINK', 'JOIN', 'TEAM', 'PAIR'],
+      normal: ['BOND', 'BIND', 'KNOT', 'SYNC'],
+      hard: ['ALLY', 'MEND', 'TIES', 'FUSE']
+    };
+
+
+    // 중2 목적격 관계대명사 검수 원문. | 뒤는 주절의 나머지 부분입니다.
+    const REVIEWED_SENTENCES = [
+  [
+    "easy",
+    "This is the book",
+    "which",
+    "I read",
+    "이것은 내가 읽은 책이다.",
+    "it"
+  ],
+  [
+    "easy",
+    "I like the cake",
+    "that",
+    "Mom made",
+    "나는 엄마가 만든 케이크를 좋아한다.",
+    "it"
+  ],
+  [
+    "easy",
+    "This is the bag",
+    "which",
+    "Mina bought",
+    "이것은 미나가 산 가방이다.",
+    "it"
+  ],
+  [
+    "easy",
+    "I know the boy",
+    "whom",
+    "you met",
+    "나는 네가 만난 소년을 안다.",
+    "him"
+  ],
+  [
+    "easy",
+    "She likes the song",
+    "that",
+    "we sang",
+    "그녀는 우리가 부른 노래를 좋아한다.",
+    "it"
+  ],
+  [
+    "easy",
+    "He is the teacher",
+    "who",
+    "I like",
+    "그는 내가 좋아하는 선생님이다.",
+    "him"
+  ],
+  [
+    "normal",
+    "The movie",
+    "which",
+    "we watched yesterday|was fun",
+    "우리가 어제 본 영화는 재미있었다.",
+    "it"
+  ],
+  [
+    "normal",
+    "The girl",
+    "whom",
+    "I helped yesterday|is my friend",
+    "내가 어제 도와준 소녀는 내 친구이다.",
+    "her"
+  ],
+  [
+    "normal",
+    "The cookies",
+    "that",
+    "Dad made|were good",
+    "아빠가 만든 쿠키는 맛있었다.",
+    "them"
+  ],
+  [
+    "normal",
+    "The bike",
+    "which",
+    "my brother bought|is blue",
+    "내 남동생이 산 자전거는 파란색이다.",
+    "it"
+  ],
+  [
+    "normal",
+    "The teacher",
+    "who",
+    "we met today|was kind",
+    "우리가 오늘 만난 선생님은 친절했다.",
+    "him"
+  ],
+  [
+    "normal",
+    "The picture",
+    "that",
+    "Jisu drew|is beautiful",
+    "지수가 그린 그림은 아름답다.",
+    "it"
+  ],
+  [
+    "hard",
+    "The book",
+    "that",
+    "I borrowed from Mina|was interesting",
+    "내가 미나에게서 빌린 책은 재미있었다.",
+    "it"
+  ],
+  [
+    "hard",
+    "The boy",
+    "whom",
+    "we invited to the party|is my cousin",
+    "우리가 파티에 초대한 소년은 내 사촌이다.",
+    "him"
+  ],
+  [
+    "hard",
+    "The lunch",
+    "which",
+    "my dad made for me|was delicious",
+    "아빠가 나를 위해 만든 점심은 맛있었다.",
+    "it"
+  ],
+  [
+    "hard",
+    "The friends",
+    "who",
+    "I saw at the park|were happy",
+    "내가 공원에서 본 친구들은 행복했다.",
+    "them"
+  ],
+  [
+    "hard",
+    "The letter",
+    "that",
+    "she wrote to me|was short",
+    "그녀가 나에게 쓴 편지는 짧았다.",
+    "it"
+  ],
+  [
+    "hard",
+    "The shoes",
+    "which",
+    "I bought at the store|are white",
+    "내가 가게에서 산 신발은 흰색이다.",
+    "them"
+  ],
+  [
+    "easy",
+    "These are the flowers",
+    "which",
+    "I bought yesterday",
+    "이것들은 내가 어제 산 꽃들이다.",
+    "them",
+    "I bought them yesterday"
+  ],
+  [
+    "normal",
+    "Mr. Park is the teacher",
+    "whom",
+    "many students respect",
+    "박 선생님은 많은 학생이 존경하는 선생님이다.",
+    "him",
+    "many students respect him"
+  ],
+  [
+    "easy",
+    "He likes to eat the pizza",
+    "that",
+    "his mom makes",
+    "그는 엄마가 만드는 피자를 먹는 것을 좋아한다.",
+    "it",
+    "his mom makes it"
+  ],
+  [
+    "normal",
+    "I cannot find the pen",
+    "which",
+    "Jane gave me",
+    "나는 제인이 내게 준 펜을 찾을 수 없다.",
+    "it",
+    "Jane gave me it"
+  ],
+  [
+    "easy",
+    "I like the T-shirt",
+    "that",
+    "Jenny is wearing",
+    "나는 제니가 입고 있는 티셔츠를 좋아한다.",
+    "it",
+    "Jenny is wearing it"
+  ],
+  [
+    "easy",
+    "Do you know the book",
+    "which",
+    "Mike is reading",
+    "너는 마이크가 읽고 있는 책을 아니?",
+    "it",
+    "Mike is reading it"
+  ],
+  [
+    "easy",
+    "The cake",
+    "that",
+    "Mom baked|was delicious",
+    "엄마가 구운 케이크는 맛있었다.",
+    "it",
+    "Mom baked it"
+  ],
+  [
+    "easy",
+    "Dr. Kim is the person",
+    "whom",
+    "I respect",
+    "김 박사님은 내가 존경하는 사람이다.",
+    "him",
+    "I respect him"
+  ],
+  [
+    "hard",
+    "The boy",
+    "who",
+    "Sujin is talking to|is her brother",
+    "수진이가 이야기하고 있는 소년은 그녀의 남자 형제이다.",
+    "him",
+    "Sujin is talking to him",
+    "전치사 to"
+  ],
+  [
+    "hard",
+    "The place",
+    "which",
+    "we are going to visit|is the Seoul Museum of History",
+    "우리가 방문할 곳은 서울역사박물관이다.",
+    "it",
+    "we are going to visit it"
+  ],
+  [
+    "normal",
+    "I want to eat the pasta",
+    "that",
+    "the chef made",
+    "나는 그 요리사가 만든 파스타를 먹고 싶다.",
+    "it",
+    "the chef made it"
+  ],
+  [
+    "normal",
+    "Picasso is the artist",
+    "whom",
+    "the students like most",
+    "피카소는 학생들이 가장 좋아하는 예술가이다.",
+    "him",
+    "the students like him most"
+  ],
+  [
+    "hard",
+    "The actor",
+    "that",
+    "I want to meet|is Will Smith",
+    "내가 만나고 싶은 배우는 윌 스미스이다.",
+    "him",
+    "I want to meet him"
+  ],
+  [
+    "normal",
+    "My aunt is a great doctor",
+    "who",
+    "many people respect",
+    "나의 이모는 많은 사람이 존경하는 훌륭한 의사이다.",
+    "her",
+    "many people respect her"
+  ],
+  [
+    "normal",
+    "The panda",
+    "which",
+    "I saw at the zoo|was 2 years old",
+    "내가 동물원에서 본 판다는 두 살이었다.",
+    "it",
+    "I saw it at the zoo"
+  ],
+  [
+    "hard",
+    "I lost the cap",
+    "that",
+    "my brother bought me last week",
+    "나는 내 남자 형제가 지난주 내게 사 준 모자를 잃어버렸다.",
+    "it",
+    "my brother bought me it last week"
+  ],
+  [
+    "normal",
+    "I cannot believe the news",
+    "which",
+    "Mr. Kim told me",
+    "나는 김 선생님이 내게 전한 소식을 믿을 수 없다.",
+    "it",
+    "Mr. Kim told me it"
+  ],
+  [
+    "hard",
+    "The movie",
+    "which",
+    "we are going to watch tonight|is a horror movie",
+    "우리가 오늘 밤 볼 영화는 공포 영화이다.",
+    "it",
+    "we are going to watch it tonight"
+  ],
+  [
+    "normal",
+    "This is the girl",
+    "whom",
+    "I met at the park",
+    "이 소녀는 내가 공원에서 만난 소녀이다.",
+    "her",
+    "I met her at the park"
+  ],
+  [
+    "normal",
+    "I want to buy the sneakers",
+    "which",
+    "Paul is wearing",
+    "나는 폴이 신고 있는 운동화를 사고 싶다.",
+    "them",
+    "Paul is wearing them"
+  ],
+  [
+    "hard",
+    "The story",
+    "that",
+    "a young writer wrote|was so touching",
+    "젊은 작가가 쓴 그 이야기는 매우 감동적이었다.",
+    "it",
+    "a young writer wrote it"
+  ],
+  [
+    "hard",
+    "The country",
+    "which",
+    "I am going to visit this summer|is France",
+    "내가 이번 여름에 방문할 나라는 프랑스이다.",
+    "it",
+    "I am going to visit it this summer"
+  ],
+  [
+    "normal",
+    "He is the man",
+    "who",
+    "we saw on TV yesterday",
+    "그는 우리가 어제 TV에서 본 남자이다.",
+    "him",
+    "we saw him on TV yesterday"
+  ],
+  [
+    "hard",
+    "The song",
+    "which",
+    "I listen to every day|is Beautiful Things",
+    "내가 매일 듣는 노래는 Beautiful Things이다.",
+    "it",
+    "I listen to it every day",
+    "전치사 to"
+  ]
+];
+    const QUESTION_SCHEMA = 'object-relative-v2';
+    function shuffled(values) {
+      const out = [...values];
+      for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+      }
+      return out;
+    }
+    function sentenceParts(row) {
+      const [tier, head, relative, clause, ko, pronoun] = row;
+      const [body, tail = ''] = clause.split('|');
+      const finish = text => head + ' ' + text + (tail ? ' ' + tail : '') + (head.startsWith('Do you') ? '?' : '.');
+      return {tier, head, relative, body, tail, ko, pronoun, objectOf: row[7] || '동사',
+        sentence: finish(relative + ' ' + body),
+        omitted: finish(body),
+        duplicate: row[6] ? finish(relative + ' ' + row[6]) : finish(relative + ' ' + body.replace(/ (?=(?:from|to|for|at) |(?:yesterday|today)$)/, ' ' + pronoun + ' ') + (/ (?=(?:from|to|for|at) |(?:yesterday|today)$)/.test(body) ? '' : ' ' + pronoun))};
+    }
+    function makeItems(row) {
+      const p = sentenceParts(row);
+      const person = ['who', 'whom'].includes(p.relative) || ['him', 'her'].includes(p.pronoun);
+      const answer = p.relative;
+      const explanation = '관계대명사 뒤의 ‘' + p.body + '’에서 ' + p.objectOf + '의 목적어가 빠져 있습니다. 관계대명사가 그 목적어 역할을 합니다. 목적격 관계대명사는 생략할 수 있으며, 같은 목적어를 대명사로 다시 쓰지 않습니다.';
+      const desk = {q: '빈칸에 알맞은 목적격 관계대명사를 고르세요.<br><br>' + p.sentence.replace(' ' + p.relative + ' ', ' ( &nbsp; ) '),
+        opts: [answer, person ? 'which' : 'whom'], ans: answer,
+        hint: (person ? '사람에는 who, whom, that을 쓸 수 있습니다.' : '사물에는 which, that을 쓸 수 있습니다.') + ' ' + explanation};
+      const shelf = {q: '목적격 관계대명사와 목적어 대명사가 중복되어 틀린 문장을 고르세요.<br>' + p.ko,
+        opts: [p.sentence, p.omitted, p.duplicate], ans: 2,
+        hint: p.pronoun + '이 관계대명사와 중복됩니다. 바른 문장: ' + p.sentence};
+      const terminal = {ko: p.ko, tokens: p.sentence.split(' '), hint: p.sentence + ' ' + explanation};
+      const safe = {q: '다음 문장에서 ' + p.relative + '를 생략해도 될까요?<br>' + p.sentence,
+        opts: ['생략할 수 있다', '생략할 수 없다'], ans: 0, hint: explanation};
+      return {desk, shelf, terminal, safe};
+    }
+    const QUESTION_BANK = Object.fromEntries(['easy','normal','hard'].map(tier => {
+      const items = REVIEWED_SENTENCES.filter(row => row[0] === tier).map(makeItems);
+      return [tier, Object.fromEntries(['desk','shelf','terminal','safe'].map(key => [key, items.map(item => item[key])]))];
+    }));
+    // 금고는 빈칸/중복 목적어/생략을 모두 평가하는 소문항 풀입니다.
+    for (const bank of Object.values(QUESTION_BANK)) {
+      bank.safe = bank.safe.concat(bank.desk.map(p => ({...p, ans: p.opts.indexOf(p.ans)})), bank.shelf.map(p => ({...p})));
+    }
+    const questionBags = new Map();
+    const lastSafeAnswers = new Map();
+    function drawQuestion(pool, key) {
+      let bag = questionBags.get(key);
+      if (!bag || bag.pool !== pool || !bag.remaining.length) {
+        const previous = bag && bag.last;
+        const remaining = shuffled(pool);
+        if (remaining.length > 1 && remaining[remaining.length - 1] === previous) {
+          [remaining[0], remaining[remaining.length - 1]] = [remaining[remaining.length - 1], remaining[0]];
+        }
+        bag = {pool, remaining}; questionBags.set(key, bag);
+      }
+      bag.last = bag.remaining.pop();
+      return bag.last;
+    }
+    function randomizeChoice(p, numeric) {
+      const correct = numeric ? p.opts[p.ans] : p.ans;
+      const opts = shuffled(p.opts);
+      return {...p, opts, ans: numeric ? opts.indexOf(correct) : correct};
+    }
+    function makeSafe(pool, key) {
+      const items = [];
+      const used = new Set();
+      while (items.length < 4) {
+        const item = drawQuestion(pool, key + ':safe');
+        if (used.has(item.q)) continue;
+        used.add(item.q); items.push(randomizeChoice(item, true));
+      }
+      let ans = items.map(p => p.ans + 1).join('');
+      if (ans === lastSafeAnswers.get(key)) {
+        const p = items[0];
+        p.opts.push(p.opts.shift());
+        p.ans = (p.ans + p.opts.length - 1) % p.opts.length;
+        ans = items.map(p => p.ans + 1).join('');
+      }
+      lastSafeAnswers.set(key, ans);
+      return {items, ans, q: '네 문항의 정답 번호를 순서대로 입력하세요.<br><br>' + items.map((p,i) => (i+1) + '. ' + p.q + '<br>[' + p.opts.map((o,j) => (j+1) + '. ' + o).join(' / ') + ']').join('<br><br>'),
+        hint: items.map((p,i) => (i+1) + '번: ' + (p.ans+1) + '. ' + p.hint).join('\n')};
+    }
+    function createRound(bank, key) {
+      return {schema: QUESTION_SCHEMA,
+        desk: randomizeChoice(drawQuestion(bank.desk, key + ':desk'), false),
+        shelf: randomizeChoice(drawQuestion(bank.shelf, key + ':shelf'), true),
+        terminal: {...drawQuestion(bank.terminal, key + ':terminal')}, safe: makeSafe(bank.safe, key)};
+    }
+    function reviewedContentRows(content) {
+      const normalized = String(content).toLowerCase().replace(/\s+/g, ' ');
+      return REVIEWED_SENTENCES.filter(row => normalized.includes(sentenceParts(row).sentence.toLowerCase()));
+    }
+    function generateQuestionPackFromContent(content, meta = {}) {
+      if (!String(content || '').trim()) return [];
+      const matched = reviewedContentRows(content);
+      // 검수되지 않은 임의 지문으로 정답을 추측하지 않고 검수한 예비 문제를 사용합니다.
+      const rows = matched.length >= 5 ? matched : REVIEWED_SENTENCES;
+      const entries = rows.map(makeItems);
+      const bank = Object.fromEntries(['desk','shelf','terminal','safe'].map(key => [key, entries.map(p => p[key])]));
+      bank.safe = bank.safe.concat(bank.desk.map(p => ({...p, ans:p.opts.indexOf(p.ans)})), bank.shelf);
+      return Array.from({length:5}, (_,i) => ({...createRound(bank, 'content'), round:i+1, source: matched.length >= 5 ? 'reviewed-content' : 'reviewed-reserve'}));
+    }
+
+    let sessionPuzzles = {};
+
+    /* =========================================================================
+       2. THREE.JS 3D ENVIRONMENT & DYNAMIC MESHES
+       ========================================================================= */
+    let scene, camera, renderer, controls;
+    let interactiveObjects = [];
+    let roomGroup, companionBot;
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2();
+
+    let wallScreenCanvas = null;
+    let wallScreenTexture = null;
+    let wallScreenMesh = null;
+
+    function initWallScreenTexture() {
+      if (!wallScreenCanvas) {
+        wallScreenCanvas = document.createElement('canvas');
+        wallScreenCanvas.width = 1024;
+        wallScreenCanvas.height = 512;
+        wallScreenTexture = new THREE.CanvasTexture(wallScreenCanvas);
+      }
+    }
+
+    function updateWallMonitor() {
+      if (!wallScreenCanvas || !wallScreenTexture) return;
+      const ctx = wallScreenCanvas.getContext('2d');
+      const w = wallScreenCanvas.width;
+      const h = wallScreenCanvas.height;
+      const tier = state.difficulty;
+      const passcode = state.currentPasscode || 'LINK';
+      const keys = state.keysCollected;
+      const solvedCount = keys.filter(Boolean).length;
+
+      ctx.clearRect(0, 0, w, h);
+
+      if (tier === 'easy') {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, w, h);
+        
+        ctx.lineWidth = 14;
+        ctx.strokeStyle = '#92400e';
+        ctx.strokeRect(7, 7, w - 14, h - 14);
+
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(16, 16, w - 32, h - 32);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 36px Pretendard, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🏛️ 스마트 아카데미 : 미션 관제탑', w / 2, 60);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '22px Pretendard, sans-serif';
+        ctx.fillText(`요원: ${state.playerName}  |  해독 완료된 미션: ${solvedCount} / 4 개`, w / 2, 98);
+
+        const slotWidth = 210;
+        const startX = 60;
+        const slotY = 130;
+        const labels = ['① 태블릿 (책상)', '② 스마트 서가', '③ 단말기 (콘솔)', '④ 시큐리티 금고'];
+
+        for (let i = 0; i < 4; i++) {
+          const x = startX + i * 230;
+          const isSolved = keys[i];
+
+          ctx.fillStyle = isSolved ? 'rgba(16, 185, 129, 0.15)' : 'rgba(30, 41, 59, 0.9)';
+          ctx.strokeStyle = isSolved ? '#10b981' : '#475569';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.roundRect(x, slotY, slotWidth, 200, 16);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = isSolved ? '#34d399' : '#94a3b8';
+          ctx.font = 'bold 18px Pretendard, sans-serif';
+          ctx.fillText(labels[i], x + slotWidth / 2, slotY + 35);
+
+          ctx.fillStyle = isSolved ? '#6ee7b7' : '#64748b';
+          ctx.font = isSolved ? 'bold 56px monospace' : '32px Pretendard';
+          ctx.fillText(isSolved ? `[ ${passcode[i]} ]` : '잠김 🔒', x + slotWidth / 2, slotY + 110);
+
+          ctx.fillStyle = isSolved ? '#a7f3d0' : '#475569';
+          ctx.font = '16px Pretendard';
+          ctx.fillText(isSolved ? '해독 완료!' : '미해독 단서', x + slotWidth / 2, slotY + 165);
+        }
+
+        ctx.fillStyle = '#fef08a';
+        ctx.font = 'bold 20px Pretendard';
+        ctx.fillText('💡 문법 팁: 사물 선행사는 which/that, 목적격 관계대명사는 생략 가능합니다.', w / 2, 410);
+
+        ctx.fillStyle = '#67e8f9';
+        ctx.font = '18px Pretendard';
+        ctx.fillText('방 안의 빛나는 비컨 마커를 클릭하여 4개의 열쇠 조각을 모두 획득하세요.', w / 2, 455);
+
+      } else if (tier === 'normal') {
+        ctx.fillStyle = '#050b14';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.strokeStyle = 'rgba(6, 182, 212, 0.15)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < w; x += 40) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        }
+        for (let y = 0; y < h; y += 40) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(10, 10, w - 20, h - 20);
+
+        ctx.fillStyle = '#06b6d4';
+        ctx.font = 'bold 36px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚡ 사이버 랩 양자 해독기 // 실시간 모니터링', w / 2, 60);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '20px monospace';
+        ctx.fillText(`요원: ${state.playerName} | 보안 해제 진척도: ${solvedCount * 25}%`, w / 2, 95);
+
+        const slotWidth = 210;
+        const startX = 60;
+        const slotY = 130;
+        const labels = ['① 양자 태블릿', '② 데이터 코어', '③ 신경망 콘솔', '④ 테서렉트 금고'];
+
+        for (let i = 0; i < 4; i++) {
+          const x = startX + i * 230;
+          const isSolved = keys[i];
+
+          ctx.fillStyle = isSolved ? 'rgba(6, 182, 212, 0.25)' : 'rgba(15, 23, 42, 0.85)';
+          ctx.strokeStyle = isSolved ? '#22d3ee' : '#334155';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x, slotY, slotWidth, 210);
+          ctx.fillRect(x, slotY, slotWidth, 210);
+
+          ctx.fillStyle = isSolved ? '#67e8f9' : '#64748b';
+          ctx.font = 'bold 18px monospace';
+          ctx.fillText(labels[i], x + slotWidth / 2, slotY + 38);
+
+          ctx.fillStyle = isSolved ? '#a5f3fc' : '#475569';
+          ctx.font = 'bold 64px monospace';
+          ctx.fillText(isSolved ? passcode[i] : 'ERR', x + slotWidth / 2, slotY + 125);
+
+          ctx.fillStyle = isSolved ? '#38bdf8' : '#e11d48';
+          ctx.font = '16px monospace';
+          ctx.fillText(isSolved ? '>> 해독 성공 <<' : '>> 암호화됨 <<', x + slotWidth / 2, slotY + 175);
+        }
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 20px monospace';
+        ctx.fillText(`보안 규정: 4개의 접근 코드를 모두 모아야 에어록 게이트가 열립니다.`, w / 2, 430);
+
+      } else {
+        ctx.fillStyle = '#0f0c1b';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(12, 12, w - 24, h - 24);
+
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 36px Pretendard, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('✦ 천상 신전 : 신성한 룬 아카이브 기록소 ✦', w / 2, 60);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '22px Pretendard';
+        ctx.fillText(`요원: ${state.playerName}  |  해제된 봉인: ${solvedCount} / 4 신성 룬`, w / 2, 98);
+
+        const slotWidth = 210;
+        const startX = 60;
+        const slotY = 130;
+        const labels = ['① 성소 제단', '② 태양의 서가', '③ 수정 혼천의', '④ 판도라 궤짝'];
+
+        for (let i = 0; i < 4; i++) {
+          const x = startX + i * 230;
+          const isSolved = keys[i];
+
+          ctx.fillStyle = isSolved ? 'rgba(245, 158, 11, 0.2)' : 'rgba(30, 27, 75, 0.8)';
+          ctx.strokeStyle = isSolved ? '#fbbf24' : '#6366f1';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.roundRect(x, slotY, slotWidth, 210, 20);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = isSolved ? '#fde68a' : '#818cf8';
+          ctx.font = 'bold 20px Pretendard';
+          ctx.fillText(labels[i], x + slotWidth / 2, slotY + 40);
+
+          ctx.fillStyle = isSolved ? '#fbbf24' : '#4338ca';
+          ctx.font = isSolved ? 'bold 64px serif' : '32px serif';
+          ctx.fillText(isSolved ? `[ ${passcode[i]} ]` : '⚡ 봉인 ⚡', x + slotWidth / 2, slotY + 125);
+
+          ctx.fillStyle = isSolved ? '#fef08a' : '#a5b4fc';
+          ctx.font = '16px Pretendard';
+          ctx.fillText(isSolved ? '신성 룬 개방됨' : '영적 결계 작동중', x + slotWidth / 2, slotY + 175);
+        }
+
+        ctx.fillStyle = '#fcd34d';
+        ctx.font = 'bold 22px Pretendard';
+        ctx.fillText('✦ 4개의 고대 룬을 모두 해독하여 성소의 포털 게이트를 여세요 ✦', w / 2, 420);
+      }
+
+      wallScreenTexture.needsUpdate = true;
+    }
+
+    function init3D() {
+      const container = document.getElementById('webgl-container');
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 2.8, 4.2);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 0.8;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxPolarAngle = Math.PI / 2 + 0.05;
+      controls.minDistance = 0.5;
+      controls.maxDistance = 6.5;
+      controls.target.set(0, 1.7, -1.5);
+
+      initWallScreenTexture();
+      buildRoomScene();
+      buildCompanionBot();
+
+      window.addEventListener('resize', onWindowResize);
+      let pointerStart=null;
+      renderer.domElement.addEventListener('pointerdown',e=>{pointerStart={x:e.clientX,y:e.clientY};});
+      renderer.domElement.addEventListener('pointerup',e=>{if(pointerStart&&Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)<8)onPointerDown(e);pointerStart=null;});
+      renderer.domElement.addEventListener('pointercancel',()=>{pointerStart=null;});
+
+      animate();
+    }
+
+    function buildCompanionBot() {
+      if (companionBot) scene.remove(companionBot);
+      companionBot = new THREE.Group();
+
+      const bodyGeo = new THREE.DodecahedronGeometry(0.22, 1);
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.2, metalness: 0.8 });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      companionBot.add(body);
+
+      const eyeGeo = new THREE.SphereGeometry(0.1, 16, 16);
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
+      const eye = new THREE.Mesh(eyeGeo, eyeMat);
+      eye.position.set(0, 0.05, 0.16);
+      eye.scale.set(1.2, 0.6, 0.5);
+      companionBot.add(eye);
+
+      const ringGeo = new THREE.RingGeometry(0.28, 0.34, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      companionBot.add(ring);
+
+      companionBot.position.set(1.2, 2.0, -1.2);
+      companionBot.name = "companion_pet";
+      interactiveObjects.push(body);
+
+      scene.add(companionBot);
+    }
+
+    function createBeacon(colorHex, targetName) {
+      const beaconGroup = new THREE.Group();
+      beaconGroup.name = targetName;
+
+      const geom = new THREE.OctahedronGeometry(0.18, 0);
+      const mat = new THREE.MeshBasicMaterial({ color: colorHex, wireframe: false });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.name = targetName;
+      beaconGroup.add(mesh);
+
+      const ringGeo = new THREE.RingGeometry(0.25, 0.32, 24);
+      const ringMat = new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.name = targetName;
+      beaconGroup.add(ring);
+
+      interactiveObjects.push(mesh);
+      return beaconGroup;
+    }
+
+    function buildRoomScene() {
+      document.querySelectorAll('.tier-btn').forEach(b => b.setAttribute('aria-pressed', String(b.id === 'tier-btn-' + state.difficulty)));
+      if (roomGroup) scene.remove(roomGroup);
+      roomGroup = new THREE.Group();
+      interactiveObjects = [];
+
+      const tier = state.difficulty;
+      const roomW = 10, roomH = 5, roomD = 10;
+
+      if (tier === 'easy') {
+        scene.background = new THREE.Color(0x0f172a);
+        const ambLight = new THREE.AmbientLight(0xfff7ed, 1.1);
+        const mainLight = new THREE.PointLight(0xfef08a, 1.3, 20);
+        mainLight.position.set(0, 4.4, 0);
+        mainLight.castShadow = true;
+        roomGroup.add(ambLight, mainLight);
+
+        const floorGeo = new THREE.PlaneGeometry(roomW, roomD);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x647b77, roughness: 0.45 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        roomGroup.add(floor);
+
+        const carpetGeo = new THREE.PlaneGeometry(5.4, 5.4);
+        const carpetMat = new THREE.MeshStandardMaterial({ color: 0x849dba, roughness: 0.8 });
+        const carpet = new THREE.Mesh(carpetGeo, carpetMat);
+        carpet.rotation.x = -Math.PI / 2;
+        carpet.position.y = 0.01;
+        roomGroup.add(carpet);
+
+        const lowerWallMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+        const upperWallMat = new THREE.MeshStandardMaterial({ color: 0xbad7ca, roughness: 0.85 });
+        const chairRailMat = new THREE.MeshStandardMaterial({ color: 0x586d88, roughness: 0.4 });
+
+        ['north', 'south', 'west', 'east'].forEach(side => {
+          const wGroup = new THREE.Group();
+          const lowerW = new THREE.Mesh(new THREE.PlaneGeometry(roomW, 1.5), lowerWallMat);
+          lowerW.position.y = 0.75;
+          wGroup.add(lowerW);
+
+          const upperW = new THREE.Mesh(new THREE.PlaneGeometry(roomW, 3.5), upperWallMat);
+          upperW.position.y = 3.25;
+          wGroup.add(upperW);
+
+          const rail = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.08, 0.05), chairRailMat);
+          rail.position.set(0, 1.5, 0.02);
+          wGroup.add(rail);
+
+          const baseboard = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.16, 0.06), chairRailMat);
+          baseboard.position.set(0, 0.08, 0.03);
+          wGroup.add(baseboard);
+
+          const crown = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.14, 0.08), chairRailMat);
+          crown.position.set(0, 4.93, 0.04);
+          wGroup.add(crown);
+
+          if (side === 'north') wGroup.position.set(0, 0, -roomD/2);
+          if (side === 'south') { wGroup.position.set(0, 0, roomD/2); wGroup.rotation.y = Math.PI; }
+          if (side === 'west') { wGroup.position.set(-roomW/2, 0, 0); wGroup.rotation.y = Math.PI/2; }
+          if (side === 'east') { wGroup.position.set(roomW/2, 0, 0); wGroup.rotation.y = -Math.PI/2; }
+          roomGroup.add(wGroup);
+        });
+
+        const winGroup = new THREE.Group();
+        winGroup.position.set(2.6, 2.8, -4.94);
+        const winFrame = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.2, 0.12), new THREE.MeshStandardMaterial({ color: 0x526779 }));
+        winGroup.add(winFrame);
+
+        const skyPane = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 1.9), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+        skyPane.position.z = 0.04;
+        winGroup.add(skyPane);
+
+        const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.9, 0.06), new THREE.MeshStandardMaterial({ color: 0x344458 }));
+        vBar.position.z = 0.06;
+        const hBar = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.06, 0.06), new THREE.MeshStandardMaterial({ color: 0x344458 }));
+        hBar.position.z = 0.06;
+        winGroup.add(vBar, hBar);
+        roomGroup.add(winGroup);
+
+        const boardFrame = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.4, 0.1), new THREE.MeshStandardMaterial({ color: 0x586d88 }));
+        boardFrame.position.set(-4.94, 2.5, 0);
+        boardFrame.rotation.y = Math.PI / 2;
+        roomGroup.add(boardFrame);
+
+        wallScreenMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.0, 2.2), new THREE.MeshBasicMaterial({ map: wallScreenTexture }));
+        wallScreenMesh.position.set(-4.88, 2.5, 0);
+        wallScreenMesh.rotation.y = Math.PI / 2;
+        roomGroup.add(wallScreenMesh);
+
+        buildLibraryFurniture();
+
+      } else if (tier === 'normal') {
+        scene.background = new THREE.Color(0x020617);
+        const ambLight = new THREE.AmbientLight(0x0284c7, 0.8);
+        const mainLight = new THREE.PointLight(0x06b6d4, 1.8, 22);
+        mainLight.position.set(0, 4.4, 0);
+        mainLight.castShadow = true;
+        const orangeLight = new THREE.PointLight(0xf97316, 1.0, 14);
+        orangeLight.position.set(0, 2.0, 3.0);
+        roomGroup.add(ambLight, mainLight, orangeLight);
+
+        const floorGeo = new THREE.PlaneGeometry(roomW, roomD);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x0b1120, roughness: 0.2, metalness: 0.8 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        roomGroup.add(floor);
+
+        const circuit = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 5.6), new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true }));
+        circuit.rotation.x = -Math.PI / 2;
+        circuit.position.y = 0.02;
+        roomGroup.add(circuit);
+
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4, metalness: 0.7 });
+        const conduitMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4 });
+        const hazardMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.5 });
+
+        ['north', 'south', 'west', 'east'].forEach(side => {
+          const wGroup = new THREE.Group();
+          const w = new THREE.Mesh(new THREE.PlaneGeometry(roomW, roomH), wallMat);
+          w.position.y = roomH / 2;
+          wGroup.add(w);
+
+          [-3.5, 3.5].forEach(xPos => {
+            const pipe = new THREE.Mesh(new THREE.BoxGeometry(0.12, roomH, 0.08), conduitMat);
+            pipe.position.set(xPos, roomH / 2, 0.04);
+            wGroup.add(pipe);
+          });
+
+          const stripe = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.2, 0.05), hazardMat);
+          stripe.position.set(0, 0.1, 0.03);
+          wGroup.add(stripe);
+
+          if (side === 'north') wGroup.position.set(0, 0, -roomD/2);
+          if (side === 'south') { wGroup.position.set(0, 0, roomD/2); wGroup.rotation.y = Math.PI; }
+          if (side === 'west') { wGroup.position.set(-roomW/2, 0, 0); wGroup.rotation.y = Math.PI/2; }
+          if (side === 'east') { wGroup.position.set(roomW/2, 0, 0); wGroup.rotation.y = -Math.PI/2; }
+          roomGroup.add(wGroup);
+        });
+
+        const screenBezel = new THREE.Mesh(new THREE.BoxGeometry(5.2, 2.6, 0.1), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9 }));
+        screenBezel.position.set(0, 2.9, -4.94);
+        roomGroup.add(screenBezel);
+
+        wallScreenMesh = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 2.4), new THREE.MeshBasicMaterial({ map: wallScreenTexture }));
+        wallScreenMesh.position.set(0, 2.9, -4.88);
+        roomGroup.add(wallScreenMesh);
+
+        buildCyberLabFurniture();
+
+      } else {
+        scene.background = new THREE.Color(0x0a0518);
+        const ambLight = new THREE.AmbientLight(0xfdf4ff, 0.9);
+        const mainLight = new THREE.PointLight(0xf59e0b, 2.0, 24);
+        mainLight.position.set(0, 4.4, 0);
+        mainLight.castShadow = true;
+        const royalLight = new THREE.PointLight(0x8b5cf6, 1.2, 16);
+        royalLight.position.set(0, 2.5, -2.5);
+        roomGroup.add(ambLight, mainLight, royalLight);
+
+        const floorGeo = new THREE.PlaneGeometry(roomW, roomD);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x353453, roughness: 0.15, metalness: 0.2 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        roomGroup.add(floor);
+
+        const sealRingGeo = new THREE.RingGeometry(1.8, 2.4, 32);
+        const sealRingMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide });
+        const sealRing = new THREE.Mesh(sealRingGeo, sealRingMat);
+        sealRing.rotation.x = -Math.PI / 2;
+        sealRing.position.y = 0.02;
+        roomGroup.add(sealRing);
+
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1e1233, roughness: 0.5 });
+        const goldTrimMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.2 });
+
+        ['north', 'south', 'west', 'east'].forEach(side => {
+          const wGroup = new THREE.Group();
+          const w = new THREE.Mesh(new THREE.PlaneGeometry(roomW, roomH), wallMat);
+          w.position.y = roomH / 2;
+          wGroup.add(w);
+
+          const upperGold = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.15, 0.06), goldTrimMat);
+          upperGold.position.set(0, 4.8, 0.03);
+          wGroup.add(upperGold);
+
+          const lowerGold = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.12, 0.06), goldTrimMat);
+          lowerGold.position.set(0, 0.1, 0.03);
+          wGroup.add(lowerGold);
+
+          if (side === 'north') wGroup.position.set(0, 0, -roomD/2);
+          if (side === 'south') { wGroup.position.set(0, 0, roomD/2); wGroup.rotation.y = Math.PI; }
+          if (side === 'west') { wGroup.position.set(-roomW/2, 0, 0); wGroup.rotation.y = Math.PI/2; }
+          if (side === 'east') { wGroup.position.set(roomW/2, 0, 0); wGroup.rotation.y = -Math.PI/2; }
+          roomGroup.add(wGroup);
+        });
+
+        const slabFrame = new THREE.Mesh(new THREE.BoxGeometry(4.8, 2.5, 0.12), goldTrimMat);
+        slabFrame.position.set(0, 2.9, -4.94);
+        roomGroup.add(slabFrame);
+
+        wallScreenMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 2.3), new THREE.MeshBasicMaterial({ map: wallScreenTexture }));
+        wallScreenMesh.position.set(0, 2.9, -4.87);
+        roomGroup.add(wallScreenMesh);
+
+        buildAncientTempleFurniture();
+      }
+
+      decorateClubRoom(tier);
+      updateWallMonitor();
+      scene.add(roomGroup);
+    }
+
+
+    function decorateClubRoom(tier) {
+      const colors = {easy:0xb7ff5c,normal:0xff75d8,hard:0xb59aff};
+      const color=colors[tier];
+      const glow=new THREE.MeshBasicMaterial({color});
+      const box=(w,h,d,x,y,z,mat)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);roomGroup.add(m);return m;};
+      const dark=new THREE.MeshStandardMaterial({color:0x242e4c,roughness:.65});
+      [-4.8,4.8].forEach(x=>box(.04,.04,9.6,x,.08,0,glow));
+      [-4.8,4.8].forEach(z=>box(9.6,.04,.04,0,.08,z,glow));
+      const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=192;
+      const ctx=canvas.getContext('2d');ctx.fillStyle='#181e33';ctx.fillRect(0,0,1024,192);
+      ctx.textAlign='center';ctx.fillStyle='#'+color.toString(16).padStart(6,'0');ctx.font='bold 68px sans-serif';
+      ctx.fillText({easy:'PLAYER ONE · LOUNGE',normal:'PLAY / PAUSE / ESCAPE',hard:'NEXT STOP : THE STARS'}[tier],512,90);
+      ctx.fillStyle='#e9ebff';ctx.font='25px sans-serif';ctx.fillText('ENGLISH ESCAPE : FOUR KEYS',512,148);
+      const sign=new THREE.Mesh(new THREE.PlaneGeometry(6.8,1.1),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(canvas)}));sign.position.set(0,4.15,-4.85);roomGroup.add(sign);
+      if(tier==='easy') {
+        const pink=new THREE.MeshStandardMaterial({color:0xd992bd,roughness:.8});
+        box(2.4,.45,.85,2.6,.45,3.8,pink);box(2.4,.85,.25,2.6,.95,4.15,pink);
+        [-.8,.8].forEach(dx=>box(.4,.4,.72,2.6+dx,.8,3.8,glow));
+        for(let i=0;i<9;i++){const ball=new THREE.Mesh(new THREE.SphereGeometry(.075,10,8),new THREE.MeshBasicMaterial({color:i%2?0xffa8d8:color}));ball.position.set(-4+i,4.65-Math.sin(i/8*Math.PI)*.4,-3.8);roomGroup.add(ball);}
+      } else if(tier==='normal') {
+        for(let i=0;i<3;i++) {
+          const x=-2.2+i*2.2;
+          box(.95,1.7,.65,x,.85,4.2,dark);box(.8,.65,.05,x,1.3,3.84,glow);
+          box(.95,.15,.85,x,.72,4.05,dark);
+          const stick=new THREE.Mesh(new THREE.SphereGeometry(.075,10,8),glow);stick.position.set(x-.2,.9,3.75);roomGroup.add(stick);
+          for(let j=0;j<4;j++)box(.08,.025,.08,x+.03+j*.12,.81,3.78,glow);
+        }
+        const grid=new THREE.GridHelper(9.5,18,0xff75d8,0x33446a);grid.position.y=.035;roomGroup.add(grid);
+      } else {
+        const ring=new THREE.Mesh(new THREE.TorusGeometry(1.1,.065,12,64),glow);ring.position.set(3.5,2.9,4.5);roomGroup.add(ring);
+        const planet=new THREE.Mesh(new THREE.SphereGeometry(.55,20,16),new THREE.MeshStandardMaterial({color:0x9e87e2}));planet.position.set(3.5,2.9,4.5);roomGroup.add(planet);
+        ring.rotation.x=.5;ring.rotation.y=.35;
+        for(let i=0;i<38;i++) {const star=new THREE.Mesh(new THREE.OctahedronGeometry(.025+(i%3)*.012),glow);star.position.set(Math.sin(i*2.4)*4.6,3.6+(i%7)*.16,Math.cos(i*2.4)*4.6);roomGroup.add(star);}
+      }
+    }
+    let rewardTimeout;
+    function launchQuest(i) {
+      if(!state.isPlaying) return;
+      const hints = ['책상 위에서 빛나는 태블릿을 찾아봐!', '책이나 데이터가 모여 있는 서가에서 빛나는 단서를 찾아봐!', '방 안의 빛나는 단말기를 찾아봐!', '책상 주변의 작은 금고를 찾아봐!'];
+      if (i === 4) {
+        showNotice(state.keysCollected.every(Boolean) ? '열쇠를 모두 모았어! 방을 돌려 출구 문을 직접 찾아 눌러 봐.' : '네 개의 미션을 해결해 열쇠를 모은 뒤, 방 안의 출구를 찾아봐!', 'info');
+        return;
+      }
+      if (!Number.isInteger(i) || i < 0 || i > 3) return;
+      if (!state.discoveredPuzzles || !state.discoveredPuzzles[i]) {
+        showNotice('🔎 ' + hints[i], 'info');
+        return;
+      }
+      handleObjectClick(['puzzle_desk','puzzle_shelf','puzzle_terminal','puzzle_safe'][i], false);
+    }
+    function refreshQuestDock() {
+      const count=state.keysCollected.filter(Boolean).length;
+      const status=document.getElementById('mission-status');
+      if(status) status.textContent=count===4 ? '4 / 4 CLEAR · 방 안의 출구를 직접 찾아봐!' : count+' / 4 CLEAR · 빛나는 물건을 찾아봐! 미발견 버튼을 누르면 위치 힌트를 볼 수 있어.';
+      const labels=['태블릿','서가','문장 조립','금고'];
+      for(let i=0;i<4;i++) {
+        const b=document.getElementById('quest-'+i);
+        if(b){
+          const done=state.keysCollected[i];
+          const found=state.discoveredPuzzles && state.discoveredPuzzles[i];
+          const label=done?'✓ 완료':found?'발견 · 다시 열기':'🔒 미발견';
+          b.classList.toggle('done',done);
+          b.innerHTML=label+'<br>'+labels[i];
+          b.setAttribute('aria-label',(i+1)+'번 '+labels[i]+' '+label+(found?'':' · 위치 힌트'));
+        }
+      }
+      const exit=document.getElementById('quest-4');
+      if(exit){exit.innerHTML=count===4?'↗ 출구 찾기<br>위치 안내':'🔒 출구<br>열쇠 '+count+' / 4';exit.setAttribute('aria-label','출구 찾기 안내');}
+    }
+    function buildLibraryFurniture() {
+      const deskGroup = new THREE.Group();
+      deskGroup.position.set(0, 0, -3.2);
+
+      const top = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.1, 1.2), new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.4 }));
+      top.position.y = 1.0;
+      top.name = "puzzle_desk";
+      deskGroup.add(top);
+      interactiveObjects.push(top);
+
+      [[-1.0, -0.45], [1.0, -0.45], [-1.0, 0.45], [1.0, 0.45]].forEach(([x, z]) => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.0), new THREE.MeshStandardMaterial({ color: 0x344458 }));
+        leg.position.set(x, 0.5, z);
+        deskGroup.add(leg);
+      });
+
+      const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.35), new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.6 }));
+      tablet.position.set(0, 1.07, 0);
+      tablet.name = "puzzle_desk";
+      deskGroup.add(tablet);
+      interactiveObjects.push(tablet);
+
+      const b1 = createBeacon(0x38bdf8, "puzzle_desk");
+      b1.position.set(0, 1.55, 0);
+      deskGroup.add(b1);
+      roomGroup.add(deskGroup);
+
+      // MULTI-TIERED BOOKSHELF
+      const shelfGroup = new THREE.Group();
+      shelfGroup.position.set(4.2, 0, 0);
+      shelfGroup.rotation.y = -Math.PI / 2;
+
+      const woodMat = new THREE.MeshStandardMaterial({ color: 0x582f0e, roughness: 0.45 });
+      const woodDarkMat = new THREE.MeshStandardMaterial({ color: 0x3e1f07, roughness: 0.5 });
+
+      const backboard = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.4, 0.06), woodDarkMat);
+      backboard.position.set(0, 1.7, -0.25);
+      shelfGroup.add(backboard);
+
+      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.08, 3.4, 0.56), woodMat);
+      leftWall.position.set(-1.26, 1.7, 0.03);
+      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.08, 3.4, 0.56), woodMat);
+      rightWall.position.set(1.26, 1.7, 0.03);
+      shelfGroup.add(leftWall, rightWall);
+
+      const topRoof = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.12, 0.6), woodMat);
+      topRoof.position.set(0, 3.4, 0.03);
+      const bottomPlinth = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.18, 0.6), woodMat);
+      bottomPlinth.position.set(0, 0.09, 0.03);
+      shelfGroup.add(topRoof, bottomPlinth);
+
+      const shelfYPositions = [0.85, 1.65, 2.45];
+      shelfYPositions.forEach(y => {
+        const shelfBoard = new THREE.Mesh(new THREE.BoxGeometry(2.44, 0.06, 0.52), woodMat);
+        shelfBoard.position.set(0, y, 0.03);
+        shelfGroup.add(shelfBoard);
+      });
+
+      const bookColors = [0xb91c1c, 0x1d4ed8, 0x047857, 0xb45309, 0x6d28d9, 0x0369a1, 0xbe123c, 0x854d0e];
+
+      for (let x = -1.1; x <= 1.1; x += 0.14) {
+        const color = bookColors[Math.floor(Math.random() * bookColors.length)];
+        const bH = 0.45 + (Math.sin(x * 7) * 0.08);
+        const book = new THREE.Mesh(new THREE.BoxGeometry(0.1, bH, 0.35), new THREE.MeshStandardMaterial({ color: color, roughness: 0.5 }));
+        book.position.set(x, 0.88 + bH / 2, 0.05);
+        shelfGroup.add(book);
+      }
+
+      for (let h = 0; h < 3; h++) {
+        const hBook = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.3), new THREE.MeshStandardMaterial({ color: bookColors[h % bookColors.length] }));
+        hBook.position.set(-0.85, 1.68 + h * 0.09, 0.05);
+        shelfGroup.add(hBook);
+      }
+
+      [-0.4, -0.25, 0.25, 0.4, 0.6, 0.8, 0.95].forEach((x, idx) => {
+        const color = bookColors[(idx + 2) % bookColors.length];
+        const book = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.5, 0.35), new THREE.MeshStandardMaterial({ color: color }));
+        book.position.set(x, 1.93, 0.05);
+        shelfGroup.add(book);
+      });
+
+      // TARGET BOOK
+      const targetBook = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.62, 0.44),
+        new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.85 })
+      );
+      targetBook.position.set(0, 1.98, 0.09);
+      targetBook.name = "puzzle_shelf";
+      shelfGroup.add(targetBook);
+      interactiveObjects.push(targetBook);
+
+      const goldSpine = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.58, 0.45), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+      goldSpine.position.set(0, 1.98, 0.1);
+      shelfGroup.add(goldSpine);
+
+      for (let x = -1.05; x <= 1.05; x += 0.15) {
+        if (Math.abs(x) < 0.2) continue;
+        const color = bookColors[Math.floor(Math.random() * bookColors.length)];
+        const book = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.48, 0.32), new THREE.MeshStandardMaterial({ color: color }));
+        book.position.set(x, 2.48 + 0.24, 0.05);
+        shelfGroup.add(book);
+      }
+
+      const b2 = createBeacon(0x06b6d4, "puzzle_shelf");
+      b2.position.set(0, 2.5, 0.1);
+      shelfGroup.add(b2);
+      roomGroup.add(shelfGroup);
+
+      const termGroup = new THREE.Group();
+      termGroup.position.set(-4.0, 0, 0);
+      termGroup.rotation.y = Math.PI / 2;
+
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.45, 1.2, 8), new THREE.MeshStandardMaterial({ color: 0xb45309, metalness: 0.7 }));
+      base.position.y = 0.6;
+      termGroup.add(base);
+
+      const screen = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.6, 0.1), new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 0.6 }));
+      screen.position.set(0, 1.3, 0);
+      screen.rotation.x = -Math.PI / 6;
+      screen.name = "puzzle_terminal";
+      termGroup.add(screen);
+      interactiveObjects.push(screen);
+
+      const b3 = createBeacon(0x10b981, "puzzle_terminal");
+      b3.position.set(0, 1.85, 0);
+      termGroup.add(b3);
+      roomGroup.add(termGroup);
+
+      const safeGroup = new THREE.Group();
+      safeGroup.position.set(-3.2, 0, -3.2);
+
+      const box = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 }));
+      box.position.y = 0.45;
+      box.name = "puzzle_safe";
+      safeGroup.add(box);
+      interactiveObjects.push(box);
+
+      const keypad = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.05), new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xf59e0b, emissiveIntensity: 0.6 }));
+      keypad.position.set(0.2, 0.45, 0.48);
+      keypad.name = "puzzle_safe";
+      safeGroup.add(keypad);
+      interactiveObjects.push(keypad);
+
+      const b4 = createBeacon(0xf59e0b, "puzzle_safe");
+      b4.position.set(0, 1.15, 0);
+      safeGroup.add(b4);
+      roomGroup.add(safeGroup);
+
+      const doorGroup = new THREE.Group();
+      doorGroup.position.set(0, 0, 4.9);
+      doorGroup.rotation.y = Math.PI;
+
+      const frameD = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3.4, 0.2), new THREE.MeshStandardMaterial({ color: 0x475569 }));
+      frameD.position.y = 1.7;
+      doorGroup.add(frameD);
+
+      const door = new THREE.Mesh(new THREE.BoxGeometry(1.6, 3.1, 0.1), new THREE.MeshStandardMaterial({ color: 0x526779, roughness: 0.5 }));
+      door.position.set(0, 1.65, 0.02);
+      door.name = "puzzle_door";
+      doorGroup.add(door);
+      interactiveObjects.push(door);
+
+      const sign = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.35, 0.1), new THREE.MeshBasicMaterial({ color: 0x22c55e }));
+      sign.position.set(0, 3.3, 0.1);
+      doorGroup.add(sign);
+
+      const b5 = createBeacon(0x22c55e, "puzzle_door");
+      b5.position.set(0, 2.2, 0.1);
+      doorGroup.add(b5);
+      roomGroup.add(doorGroup);
+    }
+
+    function buildCyberLabFurniture() {
+      const deskGroup = new THREE.Group();
+      deskGroup.position.set(0, 0, -3.2);
+
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 0.3, 16), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9 }));
+      base.position.y = 0.15;
+      deskGroup.add(base);
+
+      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.8, 16), new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.6 }));
+      pillar.position.y = 0.7;
+      deskGroup.add(pillar);
+
+      const glassTop = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.08, 24), new THREE.MeshStandardMaterial({ color: 0x0284c7, transparent: true, opacity: 0.8, roughness: 0.1 }));
+      glassTop.position.y = 1.1;
+      glassTop.name = "puzzle_desk";
+      deskGroup.add(glassTop);
+      interactiveObjects.push(glassTop);
+
+      const b1 = createBeacon(0x06b6d4, "puzzle_desk");
+      b1.position.set(0, 1.6, 0);
+      deskGroup.add(b1);
+      roomGroup.add(deskGroup);
+
+      const rackGroup = new THREE.Group();
+      rackGroup.position.set(4.2, 0, 0);
+      rackGroup.rotation.y = -Math.PI / 2;
+
+      const rackFrame = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.2, 0.8), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.3 }));
+      rackFrame.position.y = 1.6;
+      rackGroup.add(rackFrame);
+
+      for (let i = 0; i < 4; i++) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.45, 0.75), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7 }));
+        blade.position.set(0, 0.6 + i * 0.7, 0.05);
+        rackGroup.add(blade);
+      }
+
+      const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.3, 0), new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x06b6d4, emissiveIntensity: 1.0 }));
+      core.position.set(0, 2.0, 0.5);
+      core.name = "puzzle_shelf";
+      rackGroup.add(core);
+      interactiveObjects.push(core);
+
+      const b2 = createBeacon(0x22d3ee, "puzzle_shelf");
+      b2.position.set(0, 2.6, 0.5);
+      rackGroup.add(b2);
+      roomGroup.add(rackGroup);
+
+      const termGroup = new THREE.Group();
+      termGroup.position.set(-4.0, 0, 0);
+      termGroup.rotation.y = Math.PI / 2;
+
+      const tPedestal = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.8), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 }));
+      tPedestal.position.y = 0.6;
+      termGroup.add(tPedestal);
+
+      const tScreen = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.06), new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.8 }));
+      tScreen.position.set(0, 1.35, 0);
+      tScreen.rotation.x = -Math.PI / 5;
+      tScreen.name = "puzzle_terminal";
+      termGroup.add(tScreen);
+      interactiveObjects.push(tScreen);
+
+      const b3 = createBeacon(0x06b6d4, "puzzle_terminal");
+      b3.position.set(0, 1.95, 0);
+      termGroup.add(b3);
+      roomGroup.add(termGroup);
+
+      const safeGroup = new THREE.Group();
+      safeGroup.position.set(-3.2, 0, -3.2);
+
+      const pBase = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 0.6, 16), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9 }));
+      pBase.position.y = 0.3;
+      safeGroup.add(pBase);
+
+      const cubeSafe = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.2 }));
+      cubeSafe.position.y = 0.95;
+      cubeSafe.name = "puzzle_safe";
+      safeGroup.add(cubeSafe);
+      interactiveObjects.push(cubeSafe);
+
+      const b4 = createBeacon(0x06b6d4, "puzzle_safe");
+      b4.position.set(0, 1.6, 0);
+      safeGroup.add(b4);
+      roomGroup.add(safeGroup);
+
+      const doorGroup = new THREE.Group();
+      doorGroup.position.set(0, 0, 4.9);
+      doorGroup.rotation.y = Math.PI;
+
+      const dFrame = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.4, 0.25), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9 }));
+      dFrame.position.y = 1.7;
+      doorGroup.add(dFrame);
+
+      const gateLeft = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3.0, 0.1), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7 }));
+      gateLeft.position.set(-0.46, 1.65, 0.02);
+      gateLeft.name = "puzzle_door";
+      doorGroup.add(gateLeft);
+      interactiveObjects.push(gateLeft);
+
+      const gateRight = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3.0, 0.1), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7 }));
+      gateRight.position.set(0.46, 1.65, 0.02);
+      gateRight.name = "puzzle_door";
+      doorGroup.add(gateRight);
+      interactiveObjects.push(gateRight);
+
+      const b5 = createBeacon(0x22c55e, "puzzle_door");
+      b5.position.set(0, 2.2, 0.1);
+      doorGroup.add(b5);
+      roomGroup.add(doorGroup);
+    }
+
+    function buildAncientTempleFurniture() {
+      const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.2 });
+      const marbleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2 });
+
+      const deskGroup = new THREE.Group();
+      deskGroup.position.set(0, 0, -3.2);
+
+      const altarBase = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 1.2), marbleMat);
+      altarBase.position.y = 0.45;
+      deskGroup.add(altarBase);
+
+      const altarSlab = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.15, 1.4), goldMat);
+      altarSlab.position.y = 0.95;
+      altarSlab.name = "puzzle_desk";
+      deskGroup.add(altarSlab);
+      interactiveObjects.push(altarSlab);
+
+      const b1 = createBeacon(0xf59e0b, "puzzle_desk");
+      b1.position.set(0, 1.5, 0);
+      deskGroup.add(b1);
+      roomGroup.add(deskGroup);
+
+      const shelfGroup = new THREE.Group();
+      shelfGroup.position.set(4.0, 0, 0);
+      shelfGroup.rotation.y = -Math.PI / 2;
+
+      const pCol1 = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 2.8, 16), marbleMat);
+      pCol1.position.set(-0.8, 1.4, 0);
+      const pCol2 = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 2.8, 16), marbleMat);
+      pCol2.position.set(0.8, 1.4, 0);
+      shelfGroup.add(pCol1, pCol2);
+
+      const holyBook = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.55, 0.12), goldMat);
+      holyBook.position.set(0, 1.8, 0);
+      holyBook.rotation.y = Math.PI / 4;
+      holyBook.name = "puzzle_shelf";
+      shelfGroup.add(holyBook);
+      interactiveObjects.push(holyBook);
+
+      const b2 = createBeacon(0xf59e0b, "puzzle_shelf");
+      b2.position.set(0, 2.4, 0);
+      shelfGroup.add(b2);
+      roomGroup.add(shelfGroup);
+
+      const termGroup = new THREE.Group();
+      termGroup.position.set(-4.0, 0, 0);
+      termGroup.rotation.y = Math.PI / 2;
+
+      const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 1.1, 16), marbleMat);
+      ped.position.y = 0.55;
+      termGroup.add(ped);
+
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.35, 32, 32), new THREE.MeshStandardMaterial({ color: 0x8b5cf6, roughness: 0.1, metalness: 0.3, emissive: 0x7c3aed, emissiveIntensity: 0.8 }));
+      orb.position.y = 1.45;
+      orb.name = "puzzle_terminal";
+      termGroup.add(orb);
+      interactiveObjects.push(orb);
+
+      const b3 = createBeacon(0xa855f7, "puzzle_terminal");
+      b3.position.set(0, 2.05, 0);
+      termGroup.add(b3);
+      roomGroup.add(termGroup);
+
+      const safeGroup = new THREE.Group();
+      safeGroup.position.set(-3.2, 0, -3.2);
+
+      const chest = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.75, 0.7), goldMat);
+      chest.position.y = 0.38;
+      chest.name = "puzzle_safe";
+      safeGroup.add(chest);
+      interactiveObjects.push(chest);
+
+      const b4 = createBeacon(0xf59e0b, "puzzle_safe");
+      b4.position.set(0, 1.15, 0);
+      safeGroup.add(b4);
+      roomGroup.add(safeGroup);
+
+      const doorGroup = new THREE.Group();
+      doorGroup.position.set(0, 0, 4.9);
+      doorGroup.rotation.y = Math.PI;
+
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.25, 16, 32, Math.PI), goldMat);
+      arch.position.y = 1.9;
+      doorGroup.add(arch);
+
+      const portalCore = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.8), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, side: THREE.DoubleSide }));
+      portalCore.position.y = 1.4;
+      portalCore.name = "puzzle_door";
+      doorGroup.add(portalCore);
+      interactiveObjects.push(portalCore);
+
+      const b5 = createBeacon(0x22c55e, "puzzle_door");
+      b5.position.set(0, 2.2, 0.1);
+      doorGroup.add(b5);
+      roomGroup.add(doorGroup);
+    }
+
+    function onPointerDown(event) {
+      if (!state.isPlaying) return;
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(interactiveObjects, true);
+
+      if (intersects.length > 0) {
+        let obj = intersects[0].object;
+        while (obj && !obj.name && obj.parent) {
+          obj = obj.parent;
+        }
+        if (obj && obj.name) {
+          handleObjectClick(obj.name);
+        }
+      }
+    }
+
+    function handleObjectClick(name, fromRoom = true) {
+      if (!state.isPlaying) return;
+      if (name === 'companion_pet') {
+        showNotice('🤖 "선행사가 사물일 땐 which나 that, 사람일 땐 who, whom, that을 쓸 수 있어!"', 'info');
+        return;
+      }
+
+      let missionIdx = -1;
+      if (name === 'puzzle_desk') missionIdx = 0;
+      if (name === 'puzzle_shelf') missionIdx = 1;
+      if (name === 'puzzle_terminal') missionIdx = 2;
+      if (name === 'puzzle_safe') missionIdx = 3;
+
+      if (missionIdx !== -1) {
+        if (!state.discoveredPuzzles) state.discoveredPuzzles = [false, false, false, false];
+        if (fromRoom) {
+          state.discoveredPuzzles[missionIdx] = true;
+          refreshQuestDock();
+        } else if (!state.discoveredPuzzles[missionIdx]) return;
+      }
+      if (name === 'puzzle_door' && !fromRoom) return;
+
+      if (missionIdx !== -1 && state.keysCollected[missionIdx]) {
+        const passcodeChar = state.currentPasscode[missionIdx];
+        showNotice(`✨ 이미 해독 완료된 단서입니다! [ ${passcodeChar} ] 열쇠를 이미 획득했습니다.`, 'info');
+        return;
+      }
+
+      if (name === 'puzzle_desk') openDeskPuzzle();
+      if (name === 'puzzle_shelf') openShelfPuzzle();
+      if (name === 'puzzle_terminal') openTerminalPuzzle();
+      if (name === 'puzzle_safe') openSafePuzzle();
+      if (name === 'puzzle_door') openDoorPuzzle();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const time = performance.now() * 0.0015;
+
+      if (companionBot) {
+        companionBot.position.y = 1.9 + Math.sin(time * 2) * 0.12;
+        companionBot.rotation.y = time * 0.8;
+      }
+
+      scene.traverse(child => {
+        if (child.name && child.name.startsWith('puzzle_') && child.type === 'Group') {
+          child.position.y += Math.sin(time * 3) * 0.0008;
+          child.rotation.y = time * 1.2;
+        }
+      });
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+      if (!camera || !renderer) return;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    /* =========================================================================
+       3. LOBBY & GAME INITIALIZATION
+       ========================================================================= */
+    function selectAgent(id, emoji, name) {
+      state.agent = { id, emoji, name };
+      document.querySelectorAll('.agent-btn').forEach(btn => {
+        btn.classList.remove('border-cyan-400', 'bg-cyan-500/20');
+        btn.classList.add('border-slate-700', 'bg-slate-900/60');
+      });
+      event.currentTarget.classList.add('border-cyan-400', 'bg-cyan-500/20');
+      event.currentTarget.classList.remove('border-slate-700', 'bg-slate-900/60');
+    }
+
+    const STAGE_ORDER = ['easy', 'normal', 'hard'];
+    const stageProgress = Object.create(null);
+    function progressionName() {
+      return document.getElementById('input-player-name').value.trim() || '20101 홍길동';
+    }
+    function completedStages(name = progressionName()) {
+      if (stageProgress[name] !== undefined) return stageProgress[name];
+      try {
+        const key = 'escape-progress-v1:' + name;
+        let stored = null;
+        try { stored = localStorage.getItem(key); } catch (_) {}
+        const value = Number(stored ?? sessionStorage.getItem(key));
+        return stageProgress[name] = Number.isInteger(value) && value >= 0 && value <= 3 ? value : 0;
+      } catch (_) { return stageProgress[name] = 0; }
+    }
+    function canPlayStage(tier) {
+      const index = STAGE_ORDER.indexOf(tier);
+      return index >= 0 && index <= completedStages();
+    }
+    function refreshStageLocks() {
+      const completed = completedStages();
+      if (!canPlayStage(state.difficulty)) state.difficulty = 'easy';
+      STAGE_ORDER.forEach((tier, index) => {
+        document.querySelectorAll('[onclick="selectDifficulty(\'' + tier + '\')"], [onclick="challengeLevel(\'' + tier + '\')"]').forEach(btn => {
+          btn.disabled = index > completed;
+          btn.setAttribute('aria-disabled', String(btn.disabled));
+          btn.setAttribute('aria-pressed', String(tier === state.difficulty));
+          btn.title = btn.disabled ? index + '단계를 먼저 완료하세요.' : index < completed ? '완료한 단계 · 재도전 가능' : '도전 가능';
+          let label = btn.querySelector('.stage-lock-label');
+          if (!label) { label = document.createElement('span'); label.className = 'stage-lock-label'; btn.appendChild(label); }
+          label.textContent = btn.disabled ? ' 🔒 ' + index + '단계 완료 후 열림' : index < completed ? ' ✓ 완료 · 재도전' : ' ▶ 도전 가능';
+        });
+      });
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      refreshStageLocks();
+      document.getElementById('input-player-name').addEventListener('input', () => {
+        const previousTier = state.difficulty;
+        refreshStageLocks();
+        if (previousTier !== state.difficulty) selectDifficulty(state.difficulty);
+      });
+    });
+
+    function selectDifficulty(tier) {
+      if (!canPlayStage(tier)) { showNotice('이전 단계를 먼저 완료하세요.', 'error'); return; }
+      state.difficulty = tier;
+      ['easy', 'normal', 'hard'].forEach(t => {
+        const btn = document.getElementById(`tier-btn-${t}`);
+        btn.className = (t === tier)
+          ? 'tier-btn p-3 rounded-2xl border-2 border-cyan-400 bg-cyan-500/20 text-left transition-all'
+          : 'tier-btn p-3 rounded-2xl border-2 border-slate-700 bg-slate-900/60 text-left transition-all hover:border-slate-500';
+      });
+
+      buildRoomScene();
+    }
+
+    function startGame() {
+      if (!canPlayStage(state.difficulty)) { refreshStageLocks(); showNotice('1단계부터 순서대로 도전하세요.', 'error'); return; }
+      const nameInput = document.getElementById('input-player-name').value.trim();
+      state.playerName = nameInput || '20101 홍길동';
+
+      const pool = PASSCODE_POOLS[state.difficulty] || ['LINK'];
+      state.currentPasscode = pool[Math.floor(Math.random() * pool.length)];
+
+      const bank = QUESTION_BANK[state.difficulty];
+      sessionPuzzles = createRound(bank, state.difficulty);
+
+      // 아카이브 세트가 선택된 경우 저장된 5세트(총 20문제) 중 1세트를 무작위로 실행합니다.
+      const selectedSet = publishedLearningSets.find(x => String(x.id) === String(state.learningSetId));
+      if (selectedSet && selectedSet.content) {
+        // 기존 원문 암기 문제팩 대신 검수한 목적격 관계대명사 문항으로 재구성합니다.
+        const pack = generateQuestionPackFromContent(selectedSet.content, selectedSet);
+        if (pack.length) sessionPuzzles = pack[Math.floor(Math.random() * pack.length)];
+      }
+
+      state.keysCollected = [false, false, false, false];
+      state.discoveredPuzzles = [false, false, false, false];
+      state.score = 0;
+      state.isPlaying = true;
+      state.startTime = Date.now();
+
+      document.getElementById('hud-player-name').innerText = state.playerName;
+      document.getElementById('hud-avatar').innerText = state.agent.emoji;
+
+      const tierLabels = {
+        easy: '🟢 LEVEL 1 민트 게임 라운지',
+        normal: '🟡 LEVEL 2 네온 아케이드',
+        hard: '🔴 LEVEL 3 별빛 포털룸'
+      };
+      document.getElementById('hud-tier-badge').innerText = tierLabels[state.difficulty];
+
+      updateKeyHUD();
+
+      document.getElementById('start-modal').classList.add('hidden');
+      document.getElementById('in-game-hud').classList.remove('hidden');
+      document.getElementById('in-game-footer').classList.remove('hidden');
+
+      if (state.timerInterval) clearInterval(state.timerInterval);
+      state.timerInterval = setInterval(updateTimer, 1000);
+
+      showNotice(`🎯 [${state.difficulty.toUpperCase()}] 방의 중앙에서 탐색을 시작합니다!`, 'success');
+    }
+
+    function updateTimer() {
+      const elapsedSec = Math.floor((Date.now() - state.startTime) / 1000);
+      const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+      const s = String(elapsedSec % 60).padStart(2, '0');
+      document.getElementById('hud-timer').innerText = `${m}:${s}`;
+    }
+
+    function updateKeyHUD() {
+      refreshQuestDock();
+      const passcode = state.currentPasscode;
+      for (let i = 0; i < 4; i++) {
+        const slot = document.getElementById(`key-slot-${i}`);
+        const journalSlot = document.getElementById(`journal-key-${i}`);
+        if (state.keysCollected[i]) {
+          slot.innerText = passcode[i];
+          slot.className = 'w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-400 font-black text-cyan-300 text-sm shadow-md flex items-center justify-center';
+          journalSlot.innerText = `열쇠 획득: [ ${passcode[i]} ]`;
+          journalSlot.className = 'text-sm font-mono font-bold text-emerald-400 mt-1';
+        } else {
+          slot.innerText = '?';
+          slot.className = 'w-8 h-8 rounded-lg bg-slate-800/90 border border-dashed border-slate-600 font-bold text-slate-500 text-sm flex items-center justify-center';
+          journalSlot.innerText = '미발견 🔒';
+          journalSlot.className = 'text-sm font-bold text-slate-400 mt-1';
+        }
+      }
+
+      updateWallMonitor();
+    }
+
+    /* =========================================================================
+       4. INTERACTIVE PUZZLE MODAL LOGIC
+       ========================================================================= */
+    let terminalUserOrder = [];
+    let terminalAvailableTokens = [];
+
+    function resetModalState() {
+      document.getElementById('puzzle-error-banner').classList.add('hidden');
+      document.getElementById('puzzle-hint-box').classList.add('hidden');
+      document.getElementById('puzzle-card').classList.remove('modal-shake');
+    }
+
+    function openDeskPuzzle() {
+      resetModalState();
+      state.activePuzzleKey = 0;
+      selectedDeskOption = null;
+      const p = sessionPuzzles.desk;
+
+      document.getElementById('puzzle-step-badge').innerText = 'MISSION 1 (책상 태블릿)';
+      document.getElementById('puzzle-title').innerText = '스마트 태블릿 문법 퀴즈';
+      document.getElementById('puzzle-prompt-box').innerHTML = p.q;
+      document.getElementById('puzzle-hint-text').innerText = p.hint;
+
+      let html = '<div class="grid grid-cols-2 gap-3">';
+      p.opts.forEach((opt, idx) => {
+        html += `<button type="button" data-value="${opt}" onclick="selectDeskOption('${opt}')" class="desk-opt-btn p-3.5 rounded-2xl border-2 border-slate-700 bg-slate-900/80 font-bold text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-300 transition-all">${opt}</button>`;
+      });
+      html += '</div>';
+
+      document.getElementById('puzzle-interactive-area').innerHTML = html;
+      document.getElementById('puzzle-modal').classList.remove('hidden');
+    }
+
+    let selectedDeskOption = null;
+    function selectDeskOption(opt) {
+      selectedDeskOption = opt;
+      document.querySelectorAll('.desk-opt-btn').forEach(btn => {
+        btn.classList.remove('answer-selected');
+        btn.setAttribute('aria-pressed', 'false');
+        if (btn.dataset.value === opt) {
+          btn.classList.add('answer-selected');
+          btn.setAttribute('aria-pressed', 'true');
+        }
+      });
+    }
+
+    function openShelfPuzzle() {
+      resetModalState();
+      state.activePuzzleKey = 1;
+      selectedShelfOption = null;
+      const p = sessionPuzzles.shelf;
+
+      document.getElementById('puzzle-step-badge').innerText = 'MISSION 2 (스마트 서가)';
+      document.getElementById('puzzle-title').innerText = '마법 서적 어법 감별';
+      document.getElementById('puzzle-prompt-box').innerHTML = p.q;
+      document.getElementById('puzzle-hint-text').innerText = p.hint;
+
+      let html = '<div class="space-y-2.5">';
+      p.opts.forEach((opt, idx) => {
+        html += `<button type="button" onclick="selectShelfOption(${idx})" class="shelf-opt-btn w-full p-3 text-left rounded-xl border-2 border-slate-700 bg-slate-900/80 text-xs md:text-sm text-slate-200 hover:border-cyan-400 transition-all">
+          <span class="font-bold text-cyan-400 mr-1.5">${idx + 1}.</span> ${opt}
+        </button>`;
+      });
+      html += '</div>';
+
+      document.getElementById('puzzle-interactive-area').innerHTML = html;
+      document.getElementById('puzzle-modal').classList.remove('hidden');
+    }
+
+    let selectedShelfOption = null;
+    function selectShelfOption(idx) {
+      selectedShelfOption = idx;
+      document.querySelectorAll('.shelf-opt-btn').forEach((btn, i) => {
+        btn.classList.remove('answer-selected');
+        btn.setAttribute('aria-pressed', 'false');
+        if (i === idx) {
+          btn.classList.add('answer-selected');
+          btn.setAttribute('aria-pressed', 'true');
+        }
+      });
+    }
+
+    function openTerminalPuzzle() {
+      resetModalState();
+      state.activePuzzleKey = 2;
+      const p = sessionPuzzles.terminal;
+
+      document.getElementById('puzzle-step-badge').innerText = 'MISSION 3 (중앙 단말기)';
+      document.getElementById('puzzle-title').innerText = '신경망 문장 어순 재배열';
+      
+      document.getElementById('puzzle-prompt-box').innerHTML = `
+        <div class="mb-2 text-slate-300 font-semibold text-xs">
+          🇰🇷 아래 한국어 뜻을 보고 영문장을 올바른 어순으로 조합하세요:
+        </div>
+        <div class="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/40 text-cyan-200 font-bold text-sm md:text-base mb-3 shadow-inner">
+          "${p.ko}"
+        </div>
+        <div class="text-[11px] text-slate-400">아래 단어 칩을 마우스로 클릭한 채 끌어서 원하는 위치에 놓으세요. 단어 순서도 드래그로 자유롭게 바꿀 수 있습니다.</div>
+      `;
+      document.getElementById('puzzle-hint-text').innerText = p.hint;
+
+      let tokensWithId = p.tokens.map((tok, idx) => ({ text: tok, id: idx }));
+      do {
+        for (let i = tokensWithId.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [tokensWithId[i], tokensWithId[j]] = [tokensWithId[j], tokensWithId[i]];
+        }
+      } while (false);
+      if (tokensWithId.every((t, i) => t.text === p.tokens[i])) tokensWithId.push(tokensWithId.shift());
+
+      terminalAvailableTokens = tokensWithId;
+      terminalUserOrder = [];
+
+      renderTerminalPuzzleUI();
+      document.getElementById('puzzle-modal').classList.remove('hidden');
+    }
+
+    let terminalSortableAssembled = null;
+    let terminalSortableAvailable = null;
+
+    function renderTerminalPuzzleUI() {
+      let html = `
+        <div class="mb-3">
+          <div class="text-[11px] font-bold text-slate-400 mb-1.5 flex items-center justify-between">
+            <span>조립된 문장 (드래그해서 순서 변경):</span>
+            <button type="button" onclick="resetTerminalWords()" class="text-rose-400 hover:underline">초기화</button>
+          </div>
+          <div id="terminal-assembled-zone" class="min-h-[68px] p-3 rounded-2xl bg-slate-900/90 border-2 border-dashed border-cyan-500/50 flex flex-wrap gap-2 items-center content-start transition-all">
+            ${terminalUserOrder.map((item) => `
+              <div data-token-id="${item.originalIdx}" class="terminal-drag-chip px-3 py-2 rounded-xl bg-cyan-500/20 border-2 border-cyan-400 text-xs font-bold text-cyan-200 flex items-center gap-2 cursor-grab active:cursor-grabbing select-none shadow-md hover:bg-cyan-500/30 hover:shadow-cyan-500/20 transition-all">
+                <i class="fa-solid fa-grip-vertical text-cyan-400/70 pointer-events-none"></i>
+                <span class="pointer-events-none">${item.text}</span>
+              </div>
+            `).join('')}
+            ${terminalUserOrder.length === 0 ? '<span id="terminal-drop-hint" class="text-xs text-slate-500 italic pointer-events-none">단어 칩을 이곳으로 끌어다 놓으세요.</span>' : ''}
+          </div>
+        </div>
+        <div>
+          <div class="text-[11px] font-bold text-slate-400 mb-1.5">선택 가능한 단어 칩 (드래그해서 위에 놓기):</div>
+          <div id="terminal-available-zone" class="min-h-[54px] p-2 rounded-xl bg-slate-950/30 border border-slate-700/60 flex flex-wrap gap-2 items-center content-start">
+            ${terminalAvailableTokens.map((item, idx) => item.used ? '' : `
+              <div data-token-id="${idx}" class="terminal-drag-chip px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 cursor-grab active:cursor-grabbing select-none shadow-sm transition-all">
+                <i class="fa-solid fa-grip-vertical text-slate-500 mr-1.5 pointer-events-none"></i>
+                <span class="pointer-events-none">${item.text}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="mt-2 text-[10px] text-cyan-300/80 flex items-center gap-1.5">
+            <i class="fa-solid fa-hand-pointer"></i>
+            <span>단어를 꾹 누른 채 끌어서 이동하세요. 다시 아래로 끌어내리면 선택 취소됩니다.</span>
+          </div>
+        </div>
+      `;
+      document.getElementById('puzzle-interactive-area').innerHTML = html;
+      initTerminalDragAndDrop();
+    }
+
+    function initTerminalDragAndDrop() {
+      if (typeof Sortable === 'undefined') return;
+      const assembled = document.getElementById('terminal-assembled-zone');
+      const available = document.getElementById('terminal-available-zone');
+      if (!assembled || !available) return;
+
+      const common = {
+        group: 'terminal-words',
+        animation: 180,
+        draggable: '.terminal-drag-chip',
+        ghostClass: 'opacity-30',
+        chosenClass: 'ring-2',
+        dragClass: 'scale-105',
+        fallbackOnBody: true,
+        swapThreshold: 0.55,
+        touchStartThreshold: 3,
+        onAdd: syncTerminalOrderFromDOM,
+        onUpdate: syncTerminalOrderFromDOM,
+        onRemove: syncTerminalOrderFromDOM,
+        onEnd: syncTerminalOrderFromDOM
+      };
+
+      terminalSortableAssembled = Sortable.create(assembled, common);
+      terminalSortableAvailable = Sortable.create(available, common);
+    }
+
+    function syncTerminalOrderFromDOM() {
+      const assembled = document.getElementById('terminal-assembled-zone');
+      if (!assembled) return;
+
+      const ids = Array.from(assembled.querySelectorAll('.terminal-drag-chip'))
+        .map(el => Number(el.dataset.tokenId))
+        .filter(Number.isInteger);
+
+      terminalAvailableTokens.forEach((item, idx) => {
+        item.used = ids.includes(idx);
+      });
+
+      terminalUserOrder = ids.map(idx => ({
+        text: terminalAvailableTokens[idx].text,
+        originalIdx: idx
+      }));
+
+      // 빈 영역 안내 문구는 드래그 상태가 끝난 뒤 다시 렌더링하여 정리합니다.
+      renderTerminalPuzzleUI();
+    }
+
+    function addTerminalWord(chipIdx) {
+      // 접근성/호환성을 위한 보조 함수. 기본 조작은 드래그 앤 드롭입니다.
+      const item = terminalAvailableTokens[chipIdx];
+      if (!item || item.used) return;
+      item.used = true;
+      terminalUserOrder.push({ text: item.text, originalIdx: chipIdx });
+      renderTerminalPuzzleUI();
+    }
+
+    function removeTerminalWord(orderIdx) {
+      const removed = terminalUserOrder.splice(orderIdx, 1)[0];
+      if (removed && terminalAvailableTokens[removed.originalIdx]) {
+        terminalAvailableTokens[removed.originalIdx].used = false;
+      }
+      renderTerminalPuzzleUI();
+    }
+
+    function resetTerminalWords() {
+      terminalAvailableTokens.forEach(t => t.used = false);
+      terminalUserOrder = [];
+      renderTerminalPuzzleUI();
+    }
+
+    function openSafePuzzle() {
+      resetModalState();
+      state.activePuzzleKey = 3;
+      const p = sessionPuzzles.safe;
+
+      document.getElementById('puzzle-step-badge').innerText = 'MISSION 4 (시큐리티 금고)';
+      document.getElementById('puzzle-title').innerText = '디지털 보안 금고 암호';
+      document.getElementById('puzzle-prompt-box').innerHTML = p.q;
+      document.getElementById('puzzle-hint-text').innerText = p.hint;
+
+      let html = `
+        <div class="space-y-3">
+          <div class="text-center">
+            <input id="safe-input" type="text" maxlength="4" readonly placeholder="4자리 번호" class="w-48 text-center text-xl font-mono font-black tracking-widest bg-slate-900/90 border-2 border-slate-700 rounded-2xl py-2 text-cyan-300 focus:outline-none">
+          </div>
+          <div class="grid grid-cols-3 gap-2 max-w-[200px] mx-auto">
+            ${[1, 2, 3].map(n => `
+              <button type="button" onclick="pressSafeKey('${n}')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-sm border border-slate-700 shadow">${n}</button>
+            `).join('')}
+            <button type="button" onclick="clearSafeInput()" class="col-span-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/30">초기화</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('puzzle-interactive-area').innerHTML = html;
+      document.getElementById('puzzle-modal').classList.remove('hidden');
+    }
+
+    function pressSafeKey(num) {
+      const inp = document.getElementById('safe-input');
+      if (inp && inp.value.length < 4) {
+        inp.value += num;
+      }
+    }
+
+    function clearSafeInput() {
+      const inp = document.getElementById('safe-input');
+      if (inp) inp.value = '';
+    }
+
+    function openDoorPuzzle() {
+      resetModalState();
+      state.activePuzzleKey = 'door';
+
+      const solvedCount = state.keysCollected.filter(Boolean).length;
+      document.getElementById('puzzle-step-badge').innerText = 'FINAL EXIT GATE';
+      document.getElementById('puzzle-title').innerText = '아카데미 출구 탈출 보안문';
+
+      document.getElementById('puzzle-prompt-box').innerHTML = `
+        <b>탈출 보안 승인 시스템</b><br>
+        방 안의 4가지 미션을 해결하여 모은 4글자 영단어 암호를 입력하세요.
+        <div class="mt-2 text-xs font-bold text-cyan-300">
+          현재 획득한 열쇠: ${solvedCount} / 4 개
+        </div>
+      `;
+      document.getElementById('puzzle-hint-text').innerText = `미션 노트의 4개 열쇠를 차례대로 조합하여 입력하세요.`;
+
+      let html = `
+        <div class="text-center">
+          <input id="door-passcode-input" type="text" maxlength="4" placeholder="4글자 암호 입력" class="w-56 text-center text-2xl font-mono font-black uppercase tracking-widest bg-slate-900/90 border-2 border-slate-700 rounded-2xl py-2.5 text-emerald-300 focus:outline-none focus:border-emerald-400">
+        </div>
+      `;
+
+      document.getElementById('puzzle-interactive-area').innerHTML = html;
+      document.getElementById('puzzle-modal').classList.remove('hidden');
+    }
+
+    function closePuzzleModal() {
+      document.getElementById('puzzle-modal').classList.add('hidden');
+    }
+
+    function toggleHint() {
+      const hintBox = document.getElementById('puzzle-hint-box');
+      hintBox.classList.toggle('hidden');
+    }
+
+    function checkPuzzleAnswer() {
+      const keyIdx = state.activePuzzleKey;
+
+      if (keyIdx === 0) {
+        if (selectedDeskOption === sessionPuzzles.desk.ans) {
+          solveSuccess(0);
+        } else {
+          showPuzzleError('태블릿 인증 실패: 올바른 목적격 관계대명사를 선택하세요.');
+        }
+      } else if (keyIdx === 1) {
+        if (selectedShelfOption === sessionPuzzles.shelf.ans) {
+          solveSuccess(1);
+        } else {
+          showPuzzleError('서가 인증 실패: 대명사 중복 또는 선행사 불일치 문장을 다시 찾으세요.');
+        }
+      } else if (keyIdx === 2) {
+        const targetSentence = sessionPuzzles.terminal.tokens.join(' ');
+        const userSentence = terminalUserOrder.map(t => t.text).join(' ');
+        if (userSentence === targetSentence) {
+          solveSuccess(2);
+        } else {
+          showPuzzleError('단말기 신경망 오류: 문장 어순이 올바르지 않습니다.');
+        }
+      } else if (keyIdx === 3) {
+        const inputVal = document.getElementById('safe-input').value.trim();
+        if (inputVal === sessionPuzzles.safe.ans) {
+          solveSuccess(3);
+        } else {
+          showPuzzleError(`금고 잠금 해제 실패: 입력한 번호 [ ${inputVal} ]가 일치하지 않습니다.`);
+        }
+      } else if (keyIdx === 'door') {
+        const solvedCount = state.keysCollected.filter(Boolean).length;
+        if (solvedCount < 4) {
+          showPuzzleError(`🔒 봉인 거부: 4개의 열쇠를 모두 수집해야 탈출할 수 있습니다! (현재 ${solvedCount}/4개 획득)`);
+          return;
+        }
+
+        const inputVal = document.getElementById('door-passcode-input').value.trim().toUpperCase();
+        if (inputVal === state.currentPasscode) {
+          triggerVictory();
+        } else {
+          showPuzzleError(`승인 거부! 보안 코드 [ ${inputVal} ]가 일치하지 않습니다.`);
+        }
+      }
+    }
+
+    function showPuzzleError(msg) {
+      const banner = document.getElementById('puzzle-error-banner');
+      document.getElementById('puzzle-error-msg').innerText = msg;
+      banner.classList.remove('hidden');
+
+      const card = document.getElementById('puzzle-card');
+      card.classList.remove('modal-shake');
+      void card.offsetWidth;
+      card.classList.add('modal-shake');
+    }
+
+    function solveSuccess(slotIdx) {
+      if(state.keysCollected[slotIdx]) return;
+      state.keysCollected[slotIdx] = true;
+      const reward=document.getElementById('reward-pop');
+      reward.innerHTML='<strong>MISSION CLEAR!</strong><span>열쇠 '+state.keysCollected.filter(Boolean).length+' / 4 획득 · +250 XP</span>';
+      reward.classList.remove('hidden');clearTimeout(rewardTimeout);rewardTimeout=setTimeout(()=>reward.classList.add('hidden'),2200);
+      state.score += 250;
+      document.getElementById('hud-score').innerText = `${state.score} XP`;
+
+      const unlockedChar = state.currentPasscode[slotIdx];
+      updateKeyHUD();
+      closePuzzleModal();
+
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+      showNotice(`🎉 열쇠 해독 성공! [ ${unlockedChar} ] 조각을 획득했습니다! (+250 XP)`, 'success');
+    }
+
+    function triggerVictory() {
+      if (!state.isPlaying || !state.keysCollected.every(Boolean)) return;
+      state.isPlaying = false;
+      const completed = Math.max(completedStages(state.playerName), STAGE_ORDER.indexOf(state.difficulty) + 1);
+      stageProgress[state.playerName] = completed;
+      try { localStorage.setItem('escape-progress-v1:' + state.playerName, String(completed)); } catch (_) {
+        try { sessionStorage.setItem('escape-progress-v1:' + state.playerName, String(completed)); } catch (_) {}
+      }
+      refreshStageLocks();
+      closePuzzleModal();
+      clearInterval(state.timerInterval);
+
+      const elapsedSec = Math.floor((Date.now() - state.startTime) / 1000);
+      const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+      const s = String(elapsedSec % 60).padStart(2, '0');
+
+      document.getElementById('victory-player').innerText = state.playerName;
+      document.getElementById('victory-tier').innerText = state.difficulty.toUpperCase();
+      document.getElementById('victory-time').innerText = `${m}:${s}`;
+      document.getElementById('victory-code').innerText = state.currentPasscode;
+      updateVictoryLevelButtons();
+
+      confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } });
+      document.getElementById('victory-modal').classList.remove('hidden');
+
+      saveToClassRanking(state.playerName, state.difficulty, `${m}:${s}`, elapsedSec);
+    }
+
+    function updateVictoryLevelButtons() {
+      ['easy', 'normal', 'hard'].forEach(tier => {
+        const btn = document.getElementById(`victory-level-${tier}`);
+        if (!btn) return;
+        btn.classList.remove('ring-2', 'ring-white', 'opacity-60');
+        if (tier === state.difficulty) {
+          btn.classList.add('ring-2', 'ring-white', 'opacity-60');
+          btn.title = '방금 완료한 단계입니다. 다시 선택하면 재도전합니다.';
+        } else {
+          btn.title = '이 단계로 바로 도전합니다.';
+        }
+      });
+    }
+
+    let rankingOpenedFromVictory = false;
+
+    function challengeLevel(tier) {
+      if (!canPlayStage(tier)) { showNotice('이전 단계를 먼저 완료하세요.', 'error'); return; }
+      document.getElementById('victory-modal').classList.add('hidden');
+      document.getElementById('next-stage-modal').classList.add('hidden');
+      document.getElementById('teacher-modal').classList.add('hidden');
+      rankingOpenedFromVictory = false;
+      selectDifficulty(tier);
+      startGame();
+    }
+
+    function viewRankingFromVictory() {
+      document.getElementById('victory-modal').classList.add('hidden');
+      rankingOpenedFromVictory = true;
+      openTeacherModal();
+      switchTeacherTab('ranking');
+      const nextBtn = document.getElementById('ranking-next-stage-btn');
+      if (nextBtn) nextBtn.classList.remove('hidden');
+    }
+
+    function openNextStageModal() {
+      refreshStageLocks();
+      document.getElementById('teacher-modal').classList.add('hidden');
+      document.getElementById('next-stage-modal').classList.remove('hidden');
+    }
+
+    function restartGameFromNextStage() {
+      document.getElementById('next-stage-modal').classList.add('hidden');
+      rankingOpenedFromVictory = false;
+      const nextBtn = document.getElementById('ranking-next-stage-btn');
+      if (nextBtn) nextBtn.classList.add('hidden');
+      restartGame();
+    }
+
+    function restartGame() {
+      document.getElementById('victory-modal').classList.add('hidden');
+      document.getElementById('in-game-hud').classList.add('hidden');
+      document.getElementById('in-game-footer').classList.add('hidden');
+      document.getElementById('start-modal').classList.remove('hidden');
+    }
+
+    /* =========================================================================
+       5. TEACHER CONTROL & LIVE RANKING SYSTEM
+       ========================================================================= */
+    // -------------------------------------------------------------------------
+    // 실제 학급 공용 랭킹 (Supabase)
+    // GitHub Pages에 접속한 모든 학생이 같은 랭킹 데이터를 실시간으로 봅니다.
+    // -------------------------------------------------------------------------
+    const SUPABASE_URL = 'https://woqatoineqdxxoxxfdyy.supabase.co';
+    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_OPHEZ6XuFlHYZ-VnMDzqWg_a4aEHZht';
+
+    let db = null;
+    let rankingChannel = null;
+    let classRecords = [];
+    let rankingLoadVersion = 0;
+
+    function setRankingStatus(message, ok = false) {
+      const el = document.getElementById('ranking-connection-status');
+      if (!el) return;
+      el.innerHTML = message;
+      el.className = ok
+        ? 'mb-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-400/40 text-xs text-emerald-200'
+        : 'mb-3 p-3 rounded-xl bg-amber-500/10 border border-amber-400/40 text-xs text-amber-200';
+    }
+
+    async function loadSharedRanking() {
+      if (!db) return false;
+      const version = ++rankingLoadVersion;
+      try {
+      const { data, error } = await db
+        .from('escape_room_rankings')
+        .select('*')
+        .order('elapsed_seconds', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (version !== rankingLoadVersion) return false;
+      if (error) {
+        console.error('Supabase ranking load error:', error);
+        setRankingStatus('⚠ 전체 랭킹 목록을 갱신하지 못했습니다. 내 기록의 저장 상태는 별도 안내를 확인하세요.');
+        return false;
+      }
+      classRecords = (data || []).map((r, i) => ({
+        rank: i + 1,
+        name: r.student_name,
+        tier: r.difficulty,
+        keys: `${r.keys_collected ?? 4}/4`,
+        time: r.elapsed_time,
+        elapsedSeconds: r.elapsed_seconds,
+        status: r.status || '탈출완료',
+        learningSetId: r.learning_set_id || null,
+        learningSetTitle: r.learning_set_title || '기본 문제 세트',
+        learningSetUnit: r.learning_set_unit || '',
+        learningSetCategory: r.learning_set_category || '',
+        createdAt: r.created_at
+      }));
+      setRankingStatus(`🟢 <b>실시간 학급 랭킹 연결됨</b> — ${classRecords.length}명의 완료 기록을 표시하고 있습니다.`, true);
+      renderRankingTable();
+      return true;
+      } catch (error) {
+        if (version === rankingLoadVersion) setRankingStatus('⚠ 전체 랭킹 목록 갱신 대기 중입니다. 기존 목록을 유지합니다. 네트워크 연결을 확인하세요.');
+        return false;
+      }
+    }
+
+    async function initSharedRanking() {
+      try {
+        if (!window.supabase || !window.supabase.createClient) throw new Error('Supabase library not loaded');
+        if (!db) db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+        setRankingStatus('🟢 실시간 학급 DB 연결 중...', true);
+        await loadSharedRanking();
+
+        if (!rankingChannel) {
+          rankingChannel = db.channel('escape-room-rankings-live')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'escape_room_rankings' }, () => loadSharedRanking())
+            .subscribe((status) => {
+              if (status === 'SUBSCRIBED') loadSharedRanking();
+            });
+        }
+      } catch (err) {
+        console.error('Supabase init error:', err);
+        setRankingStatus('❌ Supabase 연결에 실패했습니다.');
+      }
+    }
+
+    function openTeacherModal() {
+      if (!db) initSharedRanking();
+      renderRankingTable();
+      const nextBtn = document.getElementById('ranking-next-stage-btn');
+      if (nextBtn) nextBtn.classList.toggle('hidden', !rankingOpenedFromVictory);
+      document.getElementById('teacher-modal').classList.remove('hidden');
+    }
+
+    function closeTeacherModal() {
+      document.getElementById('teacher-modal').classList.add('hidden');
+      if (rankingOpenedFromVictory) openNextStageModal();
+    }
+
+    function switchTeacherTab(tab) {
+      const tabs = ['ranking', 'generator', 'archive'];
+      tabs.forEach(t => {
+        const panel = document.getElementById(`teacher-tab-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (panel) panel.classList.toggle('hidden', t !== tab);
+        if (btn) btn.className = t === tab
+          ? 'px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold'
+          : 'px-4 py-2 rounded-xl bg-slate-800/70 text-slate-400 text-xs font-bold hover:text-slate-200';
+      });
+      if (tab === 'archive') loadTeacherArchive(false);
+    }
+
+    function renderRankingTable() {
+      const tbody = document.getElementById('ranking-tbody');
+      if (!tbody) return;
+      if (!classRecords.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 px-3 text-center text-slate-500">아직 저장된 실제 완료 기록이 없습니다.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = classRecords.map((r, idx) => `
+        <tr class="hover:bg-slate-800/50 transition-colors">
+          <td class="py-2.5 px-3 font-bold ${(idx + 1) === 1 ? 'text-amber-400' : 'text-slate-300'}">${idx + 1}</td>
+          <td class="py-2.5 px-3 font-semibold text-slate-100">${escapeHtml(r.name || '')}<div class="text-[9px] font-normal text-violet-300/80 mt-0.5">${escapeHtml([r.learningSetUnit, r.learningSetCategory, r.learningSetTitle].filter(Boolean).join(' · '))}</div></td>
+          <td class="py-2.5 px-3 text-cyan-300 uppercase">${escapeHtml(r.tier || '')}</td>
+          <td class="py-2.5 px-3 text-emerald-400 font-mono">${escapeHtml(r.keys || '4/4')}</td>
+          <td class="py-2.5 px-3 font-mono text-slate-300">${escapeHtml(r.time || '')}</td>
+          <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">${escapeHtml(r.status || '탈출완료')}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[ch] || ch));
+    }
+
+// Durable outbox: one localStorage key per completion, one server ID per attempt.
+const RANKING_RECEIPT_PREFIX = 'escape-ranking-receipt-v1:';
+const rankingReceipts = new Map();
+let rankingDeliveryRunning = false;
+let rankingStorageFailed = false;
+
+function readRankingReceipts() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key.startsWith(RANKING_RECEIPT_PREFIX)) continue;
+      try {
+        const receipt = JSON.parse(localStorage.getItem(key));
+        if (receipt && Number.isSafeInteger(receipt.payload?.id) && receipt.payload.id < 0 &&
+            ['pending', 'saved'].includes(receipt.delivery)) rankingReceipts.set(receipt.payload.id, receipt);
+      } catch (_) { rankingStorageFailed = true; }
+    }
+  } catch (_) { rankingStorageFailed = true; }
+  return [...rankingReceipts.values()];
+}
+
+function persistRankingReceipt(receipt) {
+  rankingReceipts.set(receipt.payload.id, receipt);
+  try {
+    localStorage.setItem(RANKING_RECEIPT_PREFIX + receipt.payload.id, JSON.stringify(receipt));
+    return true;
+  } catch (_) { rankingStorageFailed = true; return false; }
+}
+
+function updateRankingDeliveryStatus() {
+  const receipts = readRankingReceipts();
+  const pending = receipts.filter(r => r.delivery === 'pending').length;
+  let message = rankingStorageFailed
+    ? '⚠ 이 브라우저에 백업을 보관하지 못했습니다. 창을 닫기 전 완료 기록을 다운로드하세요.'
+    : pending
+      ? `⏳ 완료 기록 ${pending}건의 서버 저장을 확인 중입니다. 이 기기에 백업했으며 연결되면 자동으로 다시 확인합니다. 게임은 계속 진행할 수 있습니다.`
+      : receipts.length ? '✅ 완료 기록의 서버 저장이 확인되었습니다. 이 기기에도 백업이 남아 있습니다.' : '';
+  const lastError = receipts.find(r => r.delivery === 'pending' && r.lastError)?.lastError;
+  if (lastError) message += ' 최근 확인 내용: ' + lastError;
+  for (const id of ['ranking-delivery-status', 'victory-delivery-status']) {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = message; el.hidden = !message; }
+  }
+  const panel = document.getElementById('ranking-backup-panel');
+  if (panel) panel.hidden = !receipts.length && !rankingStorageFailed;
+}
+
+async function rankingRequest(makeRequest) {
+  const controller = new AbortController();
+  let timer;
+  try {
+    return await Promise.race([
+      makeRequest(controller.signal),
+      new Promise((_, reject) => { timer = setTimeout(() => {
+        controller.abort(); reject(new Error('서버 응답 시간 초과'));
+      }, 12000); })
+    ]);
+  } finally { clearTimeout(timer); }
+}
+
+function matchesRankingReceipt(row, payload) {
+  return row && Object.keys(payload).every(key => row[key] === payload[key]);
+}
+
+async function flushRankingReceipts() {
+  if (rankingDeliveryRunning) return;
+  rankingDeliveryRunning = true;
+  let savedAny = false;
+  try {
+    if (!db && window.supabase?.createClient) db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    if (!db) return;
+    for (const receipt of readRankingReceipts().filter(r => r.delivery === 'pending')) {
+      try {
+        // Always reconcile first: the previous request may have committed despite a lost response.
+        const existing = await rankingRequest(signal => db.from('escape_room_rankings')
+          .select('*').eq('id', receipt.payload.id).abortSignal(signal));
+        if (existing.error) throw existing.error;
+        if (existing.data?.length) {
+          if (!matchesRankingReceipt(existing.data[0], receipt.payload)) throw new Error('기록 식별자가 충돌했습니다. 백업 기록을 선생님께 전달하세요.');
+        } else {
+          const result = await rankingRequest(signal => db.from('escape_room_rankings')
+            .insert(receipt.payload).abortSignal(signal));
+          if (result.error) throw result.error;
+        }
+        receipt.delivery = 'saved';
+        receipt.lastError = '';
+        savedAny = true;
+      } catch (error) {
+        // Keep the same ID and payload for every retry, including concurrent tabs.
+        receipt.lastError = String(error.message || error);
+      }
+      persistRankingReceipt(receipt);
+    }
+  } catch (error) {
+    console.error('기록 동기화 확인 대기:', error);
+  } finally {
+    rankingDeliveryRunning = false;
+    updateRankingDeliveryStatus();
+  }
+  // A failed list refresh must never turn a confirmed save into a failed save.
+  if (savedAny) await loadSharedRanking();
+}
+
+async function saveToClassRanking(name, tier, timeStr, elapsedSeconds) {
+  const words = new Uint32Array(2);
+  crypto.getRandomValues(words);
+  // Existing server IDs are bigint. Negative safe integers avoid its positive identity sequence.
+  const id = -(words[0] * 1048576 + (words[1] % 1048576) + 1);
+  const receipt = { delivery: 'pending', completedAt: new Date().toISOString(), payload: {
+    id, student_name: name, difficulty: tier, keys_collected: 4,
+    elapsed_seconds: elapsedSeconds, elapsed_time: timeStr, status: '탈출완료',
+    learning_set_id: state.learningSetId || null,
+    learning_set_title: state.learningSetTitle || '기본 문제 세트',
+    learning_set_unit: state.learningSetUnit || null,
+    learning_set_category: state.learningSetCategory || null
+  }};
+  // Synchronous backup happens before any network request or await.
+  persistRankingReceipt(receipt);
+  updateRankingDeliveryStatus();
+  await flushRankingReceipts();
+}
+
+function downloadRankingBackup() {
+  const records = readRankingReceipts().map((r, i) => ({rank: i + 1,
+    name: r.payload.student_name, tier: r.payload.difficulty, keys: '4/4',
+    time: r.payload.elapsed_time, status: r.delivery === 'saved' ? '서버 저장 확인' : '서버 확인 대기 (기기 백업)'}));
+  const url = URL.createObjectURL(new Blob([rankingCSV(records)], {type: 'text/csv;charset=utf-8;'}));
+  const link = document.createElement('a');
+  link.href = url; link.download = 'escape_room_backup_' + Date.now() + '.csv';
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+window.addEventListener('DOMContentLoaded', () => { updateRankingDeliveryStatus(); flushRankingReceipts(); });
+window.addEventListener('online', flushRankingReceipts);
+window.addEventListener('storage', () => { updateRankingDeliveryStatus(); });
+setInterval(() => { if (readRankingReceipts().some(r => r.delivery === 'pending')) flushRankingReceipts(); }, 30000);
+
+
+    function rankingCSV(records) {
+      const cell = value => {
+        let text = String(value ?? '');
+        if (/^[\s]*[=+@-]/.test(text)) text = "'" + text;
+        return '"' + text.replace(/"/g, '""') + '"';
+      };
+      const rows = [['순위', '학번이름', '난이도', '해독열쇠', '소요시간', '상태'],
+        ...records.map(r => [r.rank, r.name, r.tier, r.keys, r.time, r.status])];
+      return '\uFEFF' + rows.map(row => row.map(cell).join(',')).join('\r\n') + '\r\n';
+    }
+    function exportCSV() {
+      const blob = new Blob([rankingCSV(classRecords)], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'escape_room_scores_' + Date.now() + '.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    // -------------------------------------------------------------------------
+    // 단원별 학습 세트 아카이브 (Supabase)
+    // -------------------------------------------------------------------------
+    let publishedLearningSets = [];
+    let learningSetsChannel = null;
+    let teacherArchiveSets = [];
+    let teacherPin = '';
+
+    function parseLearningLines(content) {
+      return String(content || '')
+        .split(/\n|(?<=[.!?])\s+/)
+        .map(v => v.replace(/^\s*\d+[.)]\s*/, '').trim())
+        .filter(v => v.length > 2 && /[A-Za-z]/.test(v));
+    }
+
+    function normalizeQuestionPack(value) {
+      if (!value) return [];
+      if (Array.isArray(value)) return value.filter(v => v && v.desk && v.shelf && v.terminal && v.safe).slice(0, 5);
+      try {
+        const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+        return Array.isArray(parsed) ? parsed.filter(v => v && v.desk && v.shelf && v.terminal && v.safe).slice(0, 5) : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    async function loadPublishedLearningSets() {
+      if (!db) return;
+      const { data, error } = await db.from('learning_sets')
+        .select('id,unit_name,category,title,content,question_pack,version,is_published,updated_at')
+        .eq('is_published', true)
+        .order('unit_name', { ascending: true })
+        .order('category', { ascending: true })
+        .order('title', { ascending: true });
+      if (error) {
+        console.warn('Learning archive not ready:', error.message);
+        renderStudentLearningSets();
+        return;
+      }
+      publishedLearningSets = data || [];
+      renderStudentLearningSets();
+    }
+
+    function renderStudentLearningSets() {
+      const select = document.getElementById('student-learning-set-select');
+      if (!select) return;
+      const current = state.learningSetId ? String(state.learningSetId) : '';
+      select.innerHTML = '<option value="">기본 방탈출 문제 세트</option>' + publishedLearningSets.map(set =>
+        `<option value="${escapeHtml(set.id)}">${escapeHtml(set.unit_name)} · ${escapeHtml(set.category)} · ${escapeHtml(set.title)}</option>`
+      ).join('');
+      if ([...select.options].some(o => o.value === current)) select.value = current;
+      else if (current) selectLearningSet('');
+    }
+
+    function selectLearningSet(id) {
+      if (!id) {
+        state.learningSetId = null;
+        state.learningSetTitle = '기본 문제 세트';
+        state.learningSetUnit = '';
+        state.learningSetCategory = '';
+        const info = document.getElementById('student-learning-set-info');
+        if (info) info.innerHTML = '기본 문제은행으로 플레이합니다.';
+        return;
+      }
+      const set = publishedLearningSets.find(x => String(x.id) === String(id));
+      if (!set) return;
+      state.learningSetId = set.id;
+      state.learningSetTitle = set.title;
+      state.learningSetUnit = set.unit_name;
+      state.learningSetCategory = set.category;
+      const info = document.getElementById('student-learning-set-info');
+      if (info) info.innerHTML = `<span class="text-violet-300 font-bold">선택됨:</span> ${escapeHtml(set.unit_name)} · ${escapeHtml(set.category)} · ${escapeHtml(set.title)} <span class="text-slate-500">(v${set.version || 1} · 20문제 랜덤)</span>`;
+    }
+
+    async function initLearningArchive() {
+      if (!db) return;
+      await loadPublishedLearningSets();
+      if (!learningSetsChannel) {
+        learningSetsChannel = db.channel('learning-sets-live')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'learning_sets' }, () => loadPublishedLearningSets())
+          .subscribe();
+      }
+    }
+
+    function ensureTeacherPin(force = false) {
+      if (teacherPin && !force) return teacherPin;
+      const pin = prompt('교사용 아카이브 PIN을 입력하세요.');
+      if (!pin) return '';
+      teacherPin = pin.trim();
+      return teacherPin;
+    }
+
+    async function loadTeacherArchive(forcePin = false) {
+      if (!db) await initSharedRanking();
+      const pin = ensureTeacherPin(forcePin);
+      if (!pin) return;
+      const status = document.getElementById('teacher-archive-status');
+      if (status) status.innerText = '아카이브를 불러오는 중...';
+      const { data, error } = await db.rpc('teacher_list_learning_sets', { p_pin: pin });
+      if (error) {
+        teacherPin = '';
+        if (status) status.innerHTML = `<span class="text-rose-300">불러오기 실패: ${escapeHtml(error.message)}</span>`;
+        return;
+      }
+      teacherArchiveSets = data || [];
+      if (status) status.innerHTML = `총 <b class="text-violet-200">${teacherArchiveSets.length}</b>개 세트 · 공개 <b class="text-emerald-300">${teacherArchiveSets.filter(x=>x.is_published).length}</b>개`;
+      renderTeacherArchive();
+    }
+
+    function renderTeacherArchive() {
+      const el = document.getElementById('teacher-archive-list');
+      if (!el) return;
+      if (!teacherArchiveSets.length) {
+        el.innerHTML = '<div class="p-6 rounded-2xl border border-dashed border-slate-700 text-center text-xs text-slate-500">아직 저장된 문제 세트가 없습니다.</div>';
+        return;
+      }
+      el.innerHTML = teacherArchiveSets.map(set => `
+        <div class="p-4 rounded-2xl bg-slate-900/65 border ${set.is_published ? 'border-emerald-500/30' : 'border-slate-700'}">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div class="flex flex-wrap gap-1.5 items-center">
+                <span class="px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-200 text-[10px] font-bold">${escapeHtml(set.unit_name)}</span>
+                <span class="px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-200 text-[10px] font-bold">${escapeHtml(set.category)}</span>
+                <span class="px-2 py-0.5 rounded-full ${set.is_published ? 'bg-emerald-500/15 text-emerald-200' : 'bg-slate-700 text-slate-300'} text-[10px] font-bold">${set.is_published ? '학생 공개' : '비공개'}</span>
+                <span class="text-[10px] text-slate-500">v${set.version || 1}</span>
+                <span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-200 text-[10px] font-bold">20문제 · 5랜덤세트</span>
+              </div>
+              <div class="mt-2 text-sm font-extrabold text-slate-100">${escapeHtml(set.title)}</div>
+              <div class="mt-1 text-[11px] text-slate-500 line-clamp-2">${escapeHtml((set.content || '').slice(0, 180))}</div>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button onclick="applyArchivedSet('${set.id}')" class="px-2.5 py-1.5 rounded-lg bg-amber-500/15 text-amber-200 border border-amber-500/30 text-[11px] font-bold">적용</button>
+              <button onclick="editArchivedSet('${set.id}')" class="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-200 border border-cyan-500/30 text-[11px] font-bold">수정</button>
+              <button onclick="toggleArchivedSetPublish('${set.id}', ${!set.is_published})" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-200 border border-emerald-500/30 text-[11px] font-bold">${set.is_published ? '비공개' : '공개'}</button>
+              <button onclick="deleteArchivedSet('${set.id}')" class="px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-300 border border-rose-500/25 text-[11px] font-bold">삭제</button>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    function newLearningSet() {
+      document.getElementById('archive-edit-id').value = '';
+      document.getElementById('archive-unit-input').value = '';
+      document.getElementById('archive-category-input').value = '문법';
+      document.getElementById('archive-title-input').value = '';
+      document.getElementById('custom-sentences-input').value = '';
+      switchTeacherTab('generator');
+    }
+
+    function editArchivedSet(id) {
+      const set = teacherArchiveSets.find(x => String(x.id) === String(id));
+      if (!set) return;
+      document.getElementById('archive-edit-id').value = set.id;
+      document.getElementById('archive-unit-input').value = set.unit_name || '';
+      document.getElementById('archive-category-input').value = set.category || '문법';
+      document.getElementById('archive-title-input').value = set.title || '';
+      document.getElementById('custom-sentences-input').value = set.content || '';
+      switchTeacherTab('generator');
+      showNotice(`✏️ ${set.unit_name} ${set.category} 세트를 수정 중입니다. 저장하면 v${(set.version || 1)+1}로 올라갑니다.`, 'info');
+    }
+
+    async function saveLearningSet(publishNow) {
+      if (!db) await initSharedRanking();
+      const pin = ensureTeacherPin(false);
+      if (!pin) return;
+      const id = document.getElementById('archive-edit-id').value || null;
+      const unit = document.getElementById('archive-unit-input').value.trim();
+      const category = document.getElementById('archive-category-input').value;
+      const title = document.getElementById('archive-title-input').value.trim();
+      const content = document.getElementById('custom-sentences-input').value.trim();
+      if (!unit || !title || !content) {
+        alert('단원, 세트 제목, 학습 내용을 모두 입력해 주세요.');
+        return;
+      }
+      const questionPack = generateQuestionPackFromContent(content, { unit_name: unit, category, title });
+      if (questionPack.length !== 5) {
+        alert('20문제 자동 생성에 실패했습니다. 영어 문장을 1개 이상 입력해 주세요.');
+        return;
+      }
+      const { data, error } = await db.rpc('teacher_save_learning_set', {
+        p_pin: pin, p_id: id, p_unit_name: unit, p_category: category,
+        p_title: title, p_content: content, p_question_pack: questionPack, p_is_published: !!publishNow
+      });
+      if (error) {
+        alert('저장 실패: ' + error.message);
+        return;
+      }
+      document.getElementById('archive-edit-id').value = data || id || '';
+      await loadPublishedLearningSets();
+      showNotice(publishNow ? '📢 저장 후 학생에게 공개했습니다.' : '💾 아카이브에 저장했습니다.', 'success');
+      switchTeacherTab('archive');
+      await loadTeacherArchive(false);
+    }
+
+    async function toggleArchivedSetPublish(id, publish) {
+      const pin = ensureTeacherPin(false);
+      if (!pin) return;
+      const { error } = await db.rpc('teacher_set_learning_set_published', { p_pin: pin, p_id: id, p_published: !!publish });
+      if (error) return alert('변경 실패: ' + error.message);
+      await loadPublishedLearningSets();
+      await loadTeacherArchive(false);
+    }
+
+    async function deleteArchivedSet(id) {
+      if (!confirm('이 문제 세트를 아카이브에서 삭제할까요? 기존 학생 랭킹 기록의 세트 이름은 그대로 남습니다.')) return;
+      const pin = ensureTeacherPin(false);
+      if (!pin) return;
+      const { error } = await db.rpc('teacher_delete_learning_set', { p_pin: pin, p_id: id });
+      if (error) return alert('삭제 실패: ' + error.message);
+      await loadPublishedLearningSets();
+      await loadTeacherArchive(false);
+    }
+
+    function applyArchivedSet(id) {
+      const set = teacherArchiveSets.find(x => String(x.id) === String(id));
+      if (!set) return;
+      const publishedMatch = publishedLearningSets.find(x => String(x.id) === String(id));
+      if (!publishedMatch) publishedLearningSets.push(set);
+      selectLearningSet(id);
+      const select = document.getElementById('student-learning-set-select');
+      renderStudentLearningSets();
+      if (select) select.value = id;
+      closeTeacherModal();
+      showNotice(`📚 ${set.unit_name} · ${set.category} · ${set.title} 세트를 현재 게임에 적용했습니다.`, 'success');
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (file.name.endsWith('.hwp') || file.name.endsWith('.hwpx')) {
+        alert('ℹ️ HWP(한글) 파일 안내:\n한글 프로그램에서 [파일 ➔ PDF로 저장] 후 업로드해 주시거나, 문장을 복사하여 아래 텍스트 입력창에 붙여넣기해 주세요!');
+        return;
+      }
+
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        const fileReader = new FileReader();
+        fileReader.onload = function() {
+          const typedarray = new Uint8Array(this.result);
+          window.pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+            let countPromises = [];
+            for (let i = 1; i <= pdf.numPages; i++) {
+              countPromises.push(pdf.getPage(i).then(page => {
+                return page.getTextContent().then(textContent => {
+                  return textContent.items.map(item => item.str).join(' ');
+                });
+              }));
+            }
+            Promise.all(countPromises).then(pagesText => {
+              const fullText = pagesText.join('\n');
+              const lines = fullText.split(/[.?!]\s+/).filter(s => s.length > 15 && /[a-zA-Z]/.test(s));
+              document.getElementById('custom-sentences-input').value = lines.join('.\n') + '.';
+              showNotice('📄 PDF에서 영문장을 성공적으로 추출하여 입력창에 채웠습니다!', 'success');
+            });
+          }).catch(err => {
+            showNotice('PDF 파일을 읽는 도중 오류가 발생했습니다.', 'error');
+          });
+        };
+        fileReader.readAsArrayBuffer(file);
+      }
+    }
+
+    function generateCustomPuzzles() {
+      const text = document.getElementById('custom-sentences-input').value.trim();
+      if (!text) {
+        alert('학습지 영문장이나 문법 표현을 먼저 입력해 주세요.');
+        return;
+      }
+      const unit = document.getElementById('archive-unit-input').value.trim() || '임시 세트';
+      const category = document.getElementById('archive-category-input').value || '문법';
+      const title = document.getElementById('archive-title-input').value.trim() || '현재 입력 내용';
+      const tempId = `temp-${Date.now()}`;
+      const questionPack = generateQuestionPackFromContent(text, { unit_name: unit, category, title });
+      if (!questionPack.length) return;
+      const tempSet = { id: tempId, unit_name: unit, category, title, content: text, question_pack: questionPack, version: 1, is_published: false };
+      publishedLearningSets.push(tempSet);
+      state.learningSetId = tempId;
+      state.learningSetTitle = title;
+      state.learningSetUnit = unit;
+      state.learningSetCategory = category;
+      renderStudentLearningSets();
+      const select = document.getElementById('student-learning-set-select');
+      if (select) select.value = tempId;
+      selectLearningSet(tempId);
+      showNotice('목적격 관계대명사 문제를 적용했습니다. 검수 원문이 5개 미만이면 예비 문제를 사용합니다.', 'success');
+      closeTeacherModal();
+    }
+
+    function toggleJournalModal(show) {
+      const modal = document.getElementById('journal-modal');
+      if (show) modal.classList.remove('hidden');
+      else modal.classList.add('hidden');
+    }
+
+    function showNotice(msg, type = 'info') {
+      const toast = document.getElementById('game-notice');
+      const icon = document.getElementById('notice-icon');
+      const text = document.getElementById('notice-text');
+
+      text.innerText = msg;
+      if (type === 'success') icon.className = 'fa-solid fa-circle-check text-emerald-400';
+      else if (type === 'error') icon.className = 'fa-solid fa-circle-xmark text-rose-400';
+      else icon.className = 'fa-solid fa-circle-info text-cyan-400';
+
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3500);
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      try { init3D(); } catch (error) { console.error('3D 초기화 실패:', error); }
+      await initSharedRanking();
+      await initLearningArchive();
+    });
+  </script>
+  <script>
+// Both HTML entry points use the same server-verified reset flow.
+let rankingResetInProgress = false;
+
+async function resetClassScores() {
+  if (rankingResetInProgress) return;
+  const pin = prompt('교사용 PIN을 입력하세요.\n전체 학급 랭킹 기록이 삭제됩니다.');
+  if (pin === null || !pin.trim()) return;
+  if (!confirm('정말 전체 학급 랭킹을 삭제할까요?\n모든 학생의 완료 기록이 삭제되며 되돌릴 수 없습니다.\n저장된 문제 세트는 유지됩니다.')) return;
+
+  rankingResetInProgress = true;
+  const buttons = document.querySelectorAll('[data-ranking-reset]');
+  buttons.forEach(button => { button.disabled = true; });
+  let deleted = false;
+  try {
+    if (!db) await initSharedRanking();
+    if (!db) throw new Error('Supabase 연결을 확인해주세요.');
+    setRankingStatus('⏳ 교사용 PIN 확인 및 전체 랭킹 삭제 중...');
+    const { data, error } = await db.rpc('teacher_clear_rankings', { p_pin: pin.trim() });
+    if (error) throw error;
+    // A void/false response from an old RPC is not proof of deletion.
+    if (!data || data.success !== true || !Number.isSafeInteger(data.deleted_count) || data.deleted_count < 0) {
+      throw new Error('서버의 삭제 결과를 확인할 수 없습니다. supabase/teacher-clear-rankings.sql을 적용한 뒤 랭킹을 새로고침하세요.');
+    }
+    deleted = true;
+    // Ignore SELECT responses started before this deletion committed.
+    rankingLoadVersion++;
+    classRecords = [];
+    renderRankingTable();
+    const refreshed = await loadSharedRanking();
+    if (!refreshed) throw new Error('최신 랭킹을 불러오지 못했습니다.');
+    const message = `✅ 전체 랭킹 ${data.deleted_count}건을 삭제했습니다.`;
+    setRankingStatus(`${message} 현재 완료 기록: ${classRecords.length}건 (삭제 후 새로 제출된 기록은 표시됩니다).`, true);
+    alert(message);
+  } catch (error) {
+    let message;
+    if (deleted) {
+      message = '랭킹 삭제는 완료했지만 목록을 새로고침하지 못했습니다. 다시 삭제하지 말고 페이지를 새로고침하세요.';
+    } else if (error.code === 'PGRST202' || error.code === '42883') {
+      message = '서버 초기화 함수가 설치되지 않았습니다. Supabase SQL Editor에서 supabase/teacher-clear-rankings.sql을 적용해주세요.';
+    } else if (error.code === '28000') {
+      message = '교사용 PIN이 올바르지 않습니다. 기록은 삭제되지 않았습니다.';
+    } else {
+      message = '초기화 결과를 확인하지 못했습니다: ' + (error.message || '네트워크 또는 Supabase 설정을 확인하세요.');
+    }
+    setRankingStatus('❌ ' + escapeHtml(message));
+    alert('❌ ' + message);
+  } finally {
+    rankingResetInProgress = false;
+    buttons.forEach(button => { button.disabled = false; });
+  }
+}
+  </script>
+</body>
+</html>
